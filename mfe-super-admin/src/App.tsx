@@ -3,12 +3,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert, AppBar, Box, Button, Card, CardContent, Chip, CircularProgress, Container, Dialog,
   DialogActions, DialogContent, DialogTitle, Divider, IconButton, Paper, Stack, Switch,
-  Table, TableBody, TableCell, TableHead, TableRow, TextField, Toolbar, Typography,
+  Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs, TextField, Toolbar, Typography,
 } from '@mui/material';
 import { AddRounded, ApartmentRounded, LogoutRounded, RefreshRounded, SecurityRounded } from '@mui/icons-material';
 import {
   ApplicationSignInError, clearPlatformSession, hasPlatformPermission, readPlatformSession, signInToPlatform, storePlatformSession,
 } from '@ecommerce/shared-library/src/auth/applicationSession';
+import { holds, sectionsFor, type SectionKey } from './adminModel';
+import SystemHealthView from './views/SystemHealthView';
+import UsersView from './views/UsersView';
+import NotificationsView from './views/NotificationsView';
+import AuditLogView from './views/AuditLogView';
 
 type Tenant = { id: string; slug: string; displayName: string; status: string };
 type Application = { applicationCode: string; displayName: string; status: string; enabled: boolean };
@@ -19,6 +24,11 @@ export default function App() {
   const [token, setToken] = useState(() => readPlatformSession(sessionStorage)?.token || '');
   // Platform roles (user-service V20): read-only roles see clients but cannot change them. The API enforces the same.
   const canManage = useMemo(() => hasPlatformPermission(readPlatformSession(sessionStorage), 'platform:tenants.manage'), [token]);
+  // Console sections follow the session's platform permissions; every API call is re-checked on the server.
+  const permissions = useMemo(() => readPlatformSession(sessionStorage)?.permissions || [], [token]);
+  const sections = useMemo(() => sectionsFor(permissions), [permissions]);
+  const [section, setSection] = useState<SectionKey>('clients');
+  const [auditUserId, setAuditUserId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -80,7 +90,7 @@ export default function App() {
     finally { setBusy(false); }
   };
 
-  const signOut = () => { clearPlatformSession(sessionStorage); setToken(''); setTenants([]); setApplications([]); setMembers([]); };
+  const signOut = () => { clearPlatformSession(sessionStorage); setToken(''); setTenants([]); setApplications([]); setMembers([]); setSection('clients'); setAuditUserId(''); };
 
   const withFeedback = async (action: () => Promise<void>, successMessage: string) => {
     setError(''); setNotice(''); setBusy(true);
@@ -145,9 +155,12 @@ export default function App() {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#F4F7FB' }}>
       <AppBar position="sticky" color="inherit" elevation={0} sx={{ borderBottom: '1px solid #E4EAF2' }}>
-        <Toolbar><ApartmentRounded color="primary" sx={{ mr: 1.5 }} /><Box sx={{ flexGrow: 1 }}><Typography fontWeight={800}>Platform control plane</Typography><Typography variant="caption" color="text.secondary">Tenant and application access</Typography></Box><IconButton aria-label="Refresh clients" onClick={() => void loadTenants()}><RefreshRounded /></IconButton><IconButton aria-label="Sign out" onClick={signOut}><LogoutRounded /></IconButton></Toolbar>
+        <Toolbar><ApartmentRounded color="primary" sx={{ mr: 1.5 }} /><Box sx={{ flexGrow: 1 }}><Typography fontWeight={800}>Platform control plane</Typography><Typography variant="caption" color="text.secondary">Clients, health, accounts and audit</Typography></Box>{section === 'clients' && <IconButton aria-label="Refresh clients" onClick={() => void loadTenants()}><RefreshRounded /></IconButton>}<IconButton aria-label="Sign out" onClick={signOut}><LogoutRounded /></IconButton></Toolbar>
+        {sections.length > 1 && <Tabs value={sections.some((item) => item.key === section) ? section : false} onChange={(_, value: SectionKey) => { setAuditUserId(''); setSection(value); }} variant="scrollable" scrollButtons="auto" aria-label="Console sections" sx={{ px: 2 }}>
+          {sections.map((item) => <Tab key={item.key} value={item.key} label={item.label} sx={{ textTransform: 'none', fontWeight: 700 }} />)}
+        </Tabs>}
       </AppBar>
-      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
+      {section === 'clients' && <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
         <Stack spacing={3}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={2}>
             <Box><Typography variant="overline" color="primary" fontWeight={800}>Super Admin</Typography><Typography variant="h3" fontWeight={800} sx={{ letterSpacing: '-.04em', color: '#15243B' }}>Client access</Typography><Typography color="text.secondary" sx={{ mt: .75 }}>Create client workspaces, control app entitlements, and grant access per employee.</Typography></Box>
@@ -187,7 +200,14 @@ export default function App() {
           </CardContent></Card>
           <Paper variant="outlined" sx={{ p: 2, bgcolor: 'transparent' }}><Typography variant="body2" color="text.secondary">Employees need an account before they can be added here. App access is tenant-scoped; enabling Inventory for a client does not grant it to every member.</Typography></Paper>
         </Stack>
-      </Container>
+      </Container>}
+      {section !== 'clients' && <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
+        {section === 'health' && <SystemHealthView token={token} canSeeDlq={holds(permissions, 'errors:manage')} />}
+        {section === 'users' && <UsersView token={token} canManage={holds(permissions, 'platform:users.manage')}
+          onOpenAudit={holds(permissions, 'platform:audit.read') ? (userId) => { setAuditUserId(String(userId)); setSection('audit'); } : undefined} />}
+        {section === 'notifications' && <NotificationsView token={token} canLookUpUsers={holds(permissions, 'platform:users.read')} />}
+        {section === 'audit' && <AuditLogView token={token} initialFilters={auditUserId ? { userId: auditUserId } : undefined} />}
+      </Container>}
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Create client workspace</DialogTitle>
         <DialogContent><Stack spacing={2} sx={{ pt: 1 }}><TextField autoFocus label="Client name" value={tenantName} onChange={(event) => setTenantName(event.target.value)} required /><TextField label="Workspace slug" value={tenantSlug} onChange={(event) => setTenantSlug(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} helperText="Lowercase letters, numbers and hyphens. Used at application sign-in." required /></Stack></DialogContent>
