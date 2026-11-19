@@ -20,7 +20,7 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import type { RootState, AppDispatch } from '@ecommerce/shared-library';
-import { updateQuantity, removeFromCart, clearCart } from '@ecommerce/shared-library';
+import { updateQuantity, clearCart } from '@ecommerce/shared-library';
 import axios from 'axios';
 
 interface CartDrawerProps {
@@ -94,7 +94,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                   </Typography>
                   <IconButton
                     size="small"
-                    onClick={() => dispatch(removeFromCart(item.productId))}
+                    onClick={() => dispatch(updateQuantity({ productId: item.productId, quantity: 0 }))}
                     sx={{ color: '#64748B', p: 0.25 }}
                   >
                     <DeleteOutlineRounded sx={{ fontSize: 16 }} />

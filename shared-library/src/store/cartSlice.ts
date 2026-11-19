@@ -13,11 +13,51 @@ export interface CartState {
   totalAmount: number;
 }
 
-const initialState: CartState = {
-  items: [],
-  totalQuantity: 0,
-  totalAmount: 0,
-};
+/** localStorage key for the shopper's cart, kept until checkout or "clear cart" empties it. */
+export const CART_STORAGE_KEY = 'ucp_cart_v1';
+
+type CartStorage = Pick<Storage, 'getItem' | 'setItem'>;
+
+function browserStorage(): CartStorage | undefined {
+  try {
+    return typeof window !== 'undefined' && window.localStorage ? window.localStorage : undefined;
+  } catch {
+    return undefined; // storage blocked (privacy mode, sandboxed iframe)
+  }
+}
+
+function withTotals(items: CartItem[]): CartState {
+  return {
+    items,
+    totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
+    totalAmount: items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+  };
+}
+
+/** The saved cart, or an empty one when nothing (or nothing valid) is stored. Totals are recomputed from the items. */
+export function loadCartState(storage: CartStorage | undefined = browserStorage()): CartState {
+  try {
+    const raw = storage?.getItem(CART_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    const items: CartItem[] = (Array.isArray(parsed?.items) ? parsed.items : [])
+      .filter((i: any) => Number.isFinite(i?.productId) && Number.isFinite(i?.price) && Number.isInteger(i?.quantity) && i.quantity > 0)
+      .map((i: any) => ({ productId: i.productId, name: String(i.name ?? ''), price: i.price, quantity: i.quantity }));
+    return withTotals(items);
+  } catch {
+    return withTotals([]);
+  }
+}
+
+/** Saves the cart so a reload, a new tab or a closed browser does not lose it before the cart page syncs it. */
+export function saveCartState(state: CartState, storage: CartStorage | undefined = browserStorage()): void {
+  try {
+    storage?.setItem(CART_STORAGE_KEY, JSON.stringify({ items: state.items }));
+  } catch {
+    // quota exceeded or storage blocked: the cart still works for this page view
+  }
+}
+
+const initialState = (): CartState => loadCartState();
 
 const cartSlice = createSlice({
   name: 'cart',

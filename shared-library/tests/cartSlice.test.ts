@@ -5,6 +5,9 @@ import cartReducer, {
   removeFromCart,
   clearCart,
   updateQuantity,
+  loadCartState,
+  saveCartState,
+  CART_STORAGE_KEY,
   type CartState,
 } from '../src/store/cartSlice.ts';
 
@@ -157,5 +160,54 @@ describe('cartSlice reducer tests', () => {
     assert.deepEqual(nextState.items, []);
     assert.equal(nextState.totalQuantity, 0);
     assert.equal(nextState.totalAmount, 0);
+  });
+});
+
+describe('cart persistence', () => {
+  const memoryStorage = (initial: Record<string, string> = {}) => {
+    const data = new Map(Object.entries(initial));
+    return {
+      getItem: (key: string) => (data.has(key) ? data.get(key)! : null),
+      setItem: (key: string, value: string) => { data.set(key, value); },
+      data,
+    };
+  };
+
+  it('starts empty when nothing is stored', () => {
+    assert.deepEqual(loadCartState(memoryStorage()), { items: [], totalQuantity: 0, totalAmount: 0 });
+  });
+
+  it('round-trips the cart and recomputes totals', () => {
+    const storage = memoryStorage();
+    const state: CartState = {
+      items: [
+        { productId: 2, name: 'Mechanical Keyboard', price: 149.5, quantity: 2 },
+        { productId: 3, name: 'Gaming Mouse', price: 89, quantity: 1 },
+      ],
+      totalQuantity: 999, // ignored: totals are derived from the items on load
+      totalAmount: 0,
+    };
+    saveCartState(state, storage);
+    const loaded = loadCartState(storage);
+    assert.deepEqual(loaded.items, state.items);
+    assert.equal(loaded.totalQuantity, 3);
+    assert.equal(loaded.totalAmount, 388);
+  });
+
+  it('ignores corrupt or invalid saved data', () => {
+    assert.deepEqual(loadCartState(memoryStorage({ [CART_STORAGE_KEY]: '{not json' })).items, []);
+    const mixed = JSON.stringify({ items: [
+      { productId: 1, name: 'ok', price: 10, quantity: 1 },
+      { productId: 'x', name: 'bad id', price: 10, quantity: 1 },
+      { productId: 4, name: 'zero qty', price: 10, quantity: 0 },
+      { productId: 5, name: 'no price', quantity: 1 },
+    ] });
+    assert.deepEqual(loadCartState(memoryStorage({ [CART_STORAGE_KEY]: mixed })).items.map((i) => i.productId), [1]);
+  });
+
+  it('keeps working when storage throws', () => {
+    const broken = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('full'); } };
+    assert.deepEqual(loadCartState(broken).items, []);
+    assert.doesNotThrow(() => saveCartState({ items: [], totalQuantity: 0, totalAmount: 0 }, broken));
   });
 });

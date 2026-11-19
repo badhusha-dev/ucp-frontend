@@ -31,7 +31,7 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import type { RootState, AppDispatch } from '@ecommerce/shared-library';
-import { addToCart, removeFromCart, clearCart, updateQuantity } from '@ecommerce/shared-library';
+import { addToCart, clearCart, updateQuantity } from '@ecommerce/shared-library';
 import axios from 'axios';
 import { cartSessionToken } from '../cartSession';
 
@@ -75,7 +75,9 @@ export default function CartPage() {
 
   const getSessionToken = () => cartSessionToken(sessionStorage, localStorage);
 
-  const fetchCartAndValidate = async () => {
+  // syncLocal: push the locally kept cart to cart-service first. Only on first load: after a change on this page the
+  // backend is already up to date, and this closure's reduxCart would be the pre-change state (it used to undo the change).
+  const fetchCartAndValidate = async (syncLocal = true) => {
     setLoading(true);
     setErrorMsg('');
     try {
@@ -89,7 +91,7 @@ export default function CartPage() {
       }
 
       // If user has local items in Redux, sync them to backend cart
-      if (reduxCart?.items && reduxCart.items.length > 0) {
+      if (syncLocal && reduxCart?.items && reduxCart.items.length > 0) {
         const syncPayload = {
           sessionToken,
           items: reduxCart.items.map((i: any) => ({
@@ -152,14 +154,15 @@ export default function CartPage() {
       if (itemId) {
         await axios.put(`/api/cart/items/${itemId}`, { quantity: newQty }, { headers });
       }
-      fetchCartAndValidate();
+      fetchCartAndValidate(false);
     } catch (err) {
       console.warn('Failed to update quantity on backend', err);
     }
   };
 
   const handleRemoveItem = async (productId: number, itemId?: number) => {
-    dispatch(removeFromCart(productId));
+    // Remove the whole line (removeFromCart only takes one unit off).
+    dispatch(updateQuantity({ productId, quantity: 0 }));
     try {
       const sessionToken = getSessionToken();
       const jwtToken = localStorage.getItem('jwt_token');
@@ -169,7 +172,7 @@ export default function CartPage() {
       if (itemId) {
         await axios.delete(`/api/cart/items/${itemId}`, { headers });
       }
-      fetchCartAndValidate();
+      fetchCartAndValidate(false);
     } catch (err) {
       console.warn('Failed to remove item on backend', err);
     }
@@ -251,7 +254,7 @@ export default function CartPage() {
             variant="outlined"
             size="small"
             startIcon={<RefreshRounded />}
-            onClick={fetchCartAndValidate}
+            onClick={() => fetchCartAndValidate(false)}
             sx={{
               borderColor: '#334155',
               color: '#94A3B8',
