@@ -1,3 +1,4 @@
+import { requestToken } from '@ecommerce/shared-library';
 import axios from 'axios';
 import { idempotencyKey } from './returnsModel';
 
@@ -5,7 +6,8 @@ export const RETURNS_API = '/api/orders/admin/rma';
 
 const client = axios.create({ baseURL: RETURNS_API });
 client.interceptors.request.use((config) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
+  // The E-commerce Admin session token (tenant-scoped), as for the order console; never the plain account sign-in.
+  const token = requestToken((config.baseURL || '') + (config.url || ''));
   if (token && !config.headers.Authorization) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });

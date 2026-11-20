@@ -58,7 +58,7 @@ export default function ProductAdminPage() {
       setLoading(false);
     }
   };
-  useEffect(() => { if (role === 'ADMIN') void load(); else setLoading(false); }, [role]);
+  useEffect(() => { if (role === 'ADMIN' || role === 'SUPER_ADMIN') void load(); else setLoading(false); }, [role]);
 
   const visibleRows = useMemo(() => rows.filter((row) => showArchived || row.active), [rows, showArchived]);
   const startCreate = () => { setEditing(null); setForm(emptyForm); setFailure(''); setOpen(true); };
@@ -92,7 +92,7 @@ export default function ProductAdminPage() {
     } catch (error: any) { setFailure(error?.response?.data?.message || error?.message || 'Unable to update product status.'); }
   };
 
-  if (role !== 'ADMIN') return <Box sx={{ maxWidth: 760, mx: 'auto', p: { xs: 2, md: 5 } }}><Alert severity="warning">Catalog management is available to administrators.</Alert></Box>;
+  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') return <Box sx={{ maxWidth: 760, mx: 'auto', p: { xs: 2, md: 5 } }}><Alert severity="warning">Catalog management is available to administrators.</Alert></Box>;
 
   return <Box sx={{ maxWidth: 1440, mx: 'auto', p: { xs: 1.5, md: 3 } }}>
     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2} sx={{ mb: 2.5 }}>

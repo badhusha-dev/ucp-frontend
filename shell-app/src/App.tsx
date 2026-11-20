@@ -515,7 +515,7 @@ function Navigation() {
                     <ListItemText primary="My Transaction Ledger" primaryTypographyProps={{ fontWeight: 600 }} />
                   </MenuItem>
 
-                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
+                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'SUPER_ADMIN') && (
                     <MenuItem
                       component={RouterLink}
                       to="/inventory"
@@ -529,14 +529,14 @@ function Navigation() {
                     </MenuItem>
                   )}
 
-                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
+                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'SUPER_ADMIN') && (
                     <MenuItem component={RouterLink} to="/stock" onClick={handleMenuClose} sx={{ py: 1.2 }}>
                       <ListItemIcon><Inventory2Outlined fontSize="small" sx={{ color: '#0F9F8F' }} /></ListItemIcon>
                       <ListItemText primary="Stock levels & reservations" primaryTypographyProps={{ fontWeight: 600 }} />
                     </MenuItem>
                   )}
 
-                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
+                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'SUPER_ADMIN') && (
                     <MenuItem
                       component={RouterLink}
                       to="/analytics"
@@ -550,7 +550,7 @@ function Navigation() {
                     </MenuItem>
                   )}
 
-                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
+                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'SUPER_ADMIN') && (
                     <MenuItem
                       component={RouterLink}
                       to="/error-stack"
@@ -564,7 +564,7 @@ function Navigation() {
                     </MenuItem>
                   )}
 
-                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
+                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'SUPER_ADMIN') && (
                     <MenuItem component={RouterLink} to="/crm" onClick={handleMenuClose} sx={{ py: 1.2 }}>
                       <ListItemIcon><PeopleAltRounded fontSize="small" sx={{ color: '#45D6C1' }} /></ListItemIcon>
                       <ListItemText primary="Advanced CRM" primaryTypographyProps={{ fontWeight: 600 }} />

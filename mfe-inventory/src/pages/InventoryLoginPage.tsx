@@ -1,6 +1,19 @@
-import React, { useState } from 'react';
-import { Alert, Box, Button, Card, CardContent, CircularProgress, Stack, TextField, Typography } from '@mui/material';
-import { signInToApplication, type ApplicationSession } from '@ecommerce/shared-library/src/auth/applicationSession';
+import React, { useEffect, useState } from 'react';
+import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, Stack, TextField, Typography } from '@mui/material';
+import {
+  exchangeForApplication, fetchMyApplications, isUsablePlatformToken, signInToApplication, workspacesFor,
+  type ApplicationSession, type Workspace,
+} from '@ecommerce/shared-library/src/auth/applicationSession';
+
+/** The account sign-in kept by the shell (localStorage 'jwt_token'), when it is a live platform token. */
+function accountToken(): string | null {
+  try {
+    const token = localStorage.getItem('jwt_token');
+    return token && isUsablePlatformToken(token) ? token : null;
+  } catch {
+    return null;
+  }
+}
 
 interface InventoryLoginPageProps {
   onAuthenticated: (session: ApplicationSession) => void;
@@ -12,6 +25,32 @@ export const InventoryLoginPage: React.FC<InventoryLoginPageProps> = ({ onAuthen
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // Workspaces where the signed-in account can open Inventory (a platform Super Admin sees every client that has it):
+  // opening one exchanges the current sign-in for an Inventory token, with no second password.
+  const token = accountToken();
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+
+  useEffect(() => {
+    if (!token) return undefined;
+    let active = true;
+    fetchMyApplications(token)
+      .then((mine) => { if (active) setWorkspaces(workspacesFor(mine, 'INVENTORY')); })
+      .catch(() => { if (active) setWorkspaces([]); });
+    return () => { active = false; };
+  }, [token]);
+
+  const openWorkspace = async (slug: string) => {
+    if (!token) return;
+    setError('');
+    setSubmitting(true);
+    try {
+      onAuthenticated(await exchangeForApplication({ applicationCode: 'INVENTORY', tenantSlug: slug }, token));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not open this workspace. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const signIn = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -37,6 +76,21 @@ export const InventoryLoginPage: React.FC<InventoryLoginPageProps> = ({ onAuthen
               <Typography color="text.secondary" sx={{ mt: 1 }}>Use your client workspace and account. Access is checked for this application.</Typography>
             </Box>
             {error && <Alert severity="error">{error}</Alert>}
+            {workspaces.length > 0 && (
+              <Stack spacing={1} aria-label="Open Inventory with your account">
+                <Typography variant="body2" fontWeight={700}>Open with your account</Typography>
+                {workspaces.map((workspace) => {
+                  const role = workspace.applications.find((app) => app.applicationCode === 'INVENTORY')?.role;
+                  return (
+                    <Button key={workspace.tenantId} variant="outlined" disabled={submitting} onClick={() => void openWorkspace(workspace.slug)}
+                      sx={{ justifyContent: 'space-between', textTransform: 'none', borderRadius: 2, py: 1.25 }}>
+                      <span><strong>{workspace.name}</strong> · {workspace.slug}</span>{role && <span>{role.replaceAll('_', ' ')}</span>}
+                    </Button>
+                  );
+                })}
+                <Divider sx={{ pt: 1 }}><Typography variant="caption" color="text.secondary">or sign in with a client account</Typography></Divider>
+              </Stack>
+            )}
             <TextField label="Client workspace" value={tenantSlug} onChange={(event) => setTenantSlug(event.target.value)} placeholder="client-a" autoComplete="organization" required fullWidth />
             <TextField label="Email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" type="email" required fullWidth />
             <TextField label="Password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" type="password" required fullWidth />
