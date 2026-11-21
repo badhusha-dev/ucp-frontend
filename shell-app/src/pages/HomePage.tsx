@@ -83,6 +83,7 @@ export default function HomePage() {
                   fontWeight: 850,
                   maxWidth: 650,
                   mb: 2,
+                  color: '#FFFFFF', // the hero is dark; without this the headline took the page's dark text colour
                 }}
               >
                 Good finds. <Box component="span" sx={{ color: '#FCD34D' }}>Made for you.</Box>

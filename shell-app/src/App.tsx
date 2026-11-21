@@ -24,6 +24,10 @@ import {
   Stack,
   Tooltip,
   CircularProgress,
+  Popover,
+  List,
+  ListItemButton,
+  ListSubheader,
 } from '@mui/material';
 import {
   ShoppingCartOutlined,
@@ -46,6 +50,10 @@ import {
   FactCheckRounded,
   AppsRounded,
   LockOutlined,
+  AssignmentReturnRounded,
+  SellRounded,
+  ListAltRounded,
+  PointOfSaleRounded,
 } from '@mui/icons-material';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import { store, logout, ProtectedRoute, ANY_SIGNED_IN, initGlobalErrorHandlers } from '@ecommerce/shared-library';
@@ -55,6 +63,30 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import QualityCenterPage from './pages/QualityCenterPage';
 import NotificationBell from './components/NotificationBell';
+import { canViewOperations as canViewOperationsMenu, visibleOperations } from './operationsMenu';
+import { roleLabel } from '@ecommerce/shared-library';
+
+// One icon per Operations screen, shared by the desktop and mobile menus.
+const OPERATIONS_ICONS: Record<string, React.ReactNode> = {
+  '/pos': <PointOfSaleRounded fontSize="small" />,
+  '/orders/control': <ListAltRounded fontSize="small" />,
+  '/orders/returns': <AssignmentReturnRounded fontSize="small" />,
+  '/orders/admin': <LocalShippingOutlined fontSize="small" />,
+  '/cart/admin/abandoned': <ShoppingCartOutlined fontSize="small" />,
+  '/products/manage': <Inventory2Outlined fontSize="small" />,
+  '/products/pricing': <SellRounded fontSize="small" />,
+  '/products/storefront': <StorefrontRounded fontSize="small" />,
+  '/inventory': <Inventory2Outlined fontSize="small" />,
+  '/stock': <Inventory2Outlined fontSize="small" />,
+  '/procurement': <LocalShippingRounded fontSize="small" />,
+  '/accounting': <AccountBalanceRounded fontSize="small" />,
+  '/crm': <PeopleAltRounded fontSize="small" />,
+  '/analytics': <InsightsRounded fontSize="small" />,
+  '/admin/quality-center': <FactCheckRounded fontSize="small" />,
+  '/error-stack': <BugReportRounded fontSize="small" />,
+  '/profile/admin': <AdminPanelSettingsOutlined fontSize="small" />,
+  '/profile/team': <PeopleAltRounded fontSize="small" />,
+};
 
 // Lazy loading remote modules via Webpack/Vite Module Federation
 const ProductApp = lazy(() => import('product_mfe/App').catch(() => ({ default: () => <Box sx={{ p: 4, textAlign: 'center', color: '#EF4444' }}>Failed to load Product MFE</Box> })));
@@ -68,6 +100,7 @@ const AccountingApp = lazy(() => import('accounting_mfe/App').catch(() => ({ def
 const CrmApp = lazy(() => import('crm_mfe/App').catch(() => ({ default: () => <Box sx={{ p: 4, textAlign: 'center', color: '#EF4444' }}>Failed to load Advanced CRM</Box> })));
 const AnalyticsApp = lazy(() => import('analytics_mfe/App').catch(() => ({ default: () => <Box sx={{ p: 4, textAlign: 'center', color: '#EF4444' }}>Failed to load Analytics MFE</Box> })));
 const ErrorStackApp = lazy(() => import('error_stack_mfe/App').catch(() => ({ default: () => <Box sx={{ p: 4, textAlign: 'center', color: '#EF4444' }}>Failed to load Error Stack MFE</Box> })));
+const PosApp = lazy(() => import('pos_mfe/App').catch(() => ({ default: () => <Box sx={{ p: 4, textAlign: 'center', color: '#EF4444' }}>Failed to load Point of Sale</Box> })));
 const ProcurementApp = lazy(() => import('procurement_mfe/App').catch(() => ({ default: () => <Box sx={{ p: 4, textAlign: 'center', color: '#EF4444' }}>Failed to load Procurement MFE</Box> })));
 
 initGlobalErrorHandlers('shell-app');
@@ -89,7 +122,9 @@ function Navigation() {
     if (user?.role === 'MANAGER') return ['users:read','users:manage','roles:manage','accounting:read','accounting:write','accounting:approve','accounting:reconcile','accounting:import','accounting:export','crm:read','crm:manage','inventory:read','inventory:manage','stock:read','stock:manage','analytics:read','loyalty:manage','orders:manage','procurement:read','procurement:manage','errors:manage'].includes(permission);
     return false;
   };
-  const canViewOperations = ['inventory:view','inventory:read','inventory:manage','stock:read','stock:manage','accounting:read','crm:read','crm:manage','analytics:read','orders:manage','procurement:manage','errors:manage','application:admin','qa:read'].some(hasPermission);
+  // Shown whenever at least one Operations item is: order, returns, pricing, storefront and catalog roles included.
+  const canViewOperations = canViewOperationsMenu(hasPermission);
+  const operationsGroups = visibleOperations(hasPermission);
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -169,7 +204,9 @@ function Navigation() {
             color: '#0F172A',
           }}
         />
-        <span>⚡ Modular Microfrontend Storefront &bull; Zero-Trust Checkout &bull; Free Global Shipping &bull; Use code <strong>UNIVERSAL20</strong> for 20% off</span>
+        {/* The full line wraps to three rows on a phone; there it keeps only the offer. */}
+        <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>⚡ Modular Microfrontend Storefront &bull; Zero-Trust Checkout &bull; Free Global Shipping &bull; Use code <strong>UNIVERSAL20</strong> for 20% off</Box>
+        <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>Use code <strong>UNIVERSAL20</strong> for 20% off</Box>
       </Box>
 
       {/* Main Navigation Bar */}
@@ -228,7 +265,7 @@ function Navigation() {
                 >
                   UNIVERSAL COMMERCE
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#06B6D4', fontWeight: 800, letterSpacing: '0.12em', fontSize: '0.65rem' }}>
+                <Typography variant="caption" sx={{ color: '#06B6D4', fontWeight: 800, letterSpacing: '0.12em', fontSize: '0.65rem', display: { xs: 'block', lg: 'none', xl: 'block' } }}>
                   MICROFRONTEND STOREFRONT
                 </Typography>
               </Box>
@@ -237,13 +274,13 @@ function Navigation() {
           <IconButton
             aria-label="Open navigation"
             onClick={handleMobileNavOpen}
-            sx={{ display: { xs: 'inline-flex', xl: 'none' }, color: '#E2E8F0' }}
+            sx={{ display: { xs: 'inline-flex', lg: 'none' }, color: '#E2E8F0' }}
           >
             <MenuRounded />
           </IconButton>
 
           {/* Keep primary navigation compact; administrative services live in Operations. */}
-          <Box sx={{ flexGrow: 1, minWidth: 0, display: { xs: 'none', xl: 'flex' }, alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ flexGrow: 1, minWidth: 0, display: { xs: 'none', lg: 'flex' }, alignItems: 'center', gap: 0.5, '& .MuiButton-startIcon': { display: { lg: 'none', xl: 'inherit' } } }}>
             <Button component={RouterLink} to="/" sx={{ color: '#E2E8F0', fontWeight: 600, minWidth: 'auto', px: 1, whiteSpace: 'nowrap' }}>
               Catalog
             </Button>
@@ -265,7 +302,7 @@ function Navigation() {
               <Button
                 onClick={handleOperationsMenuOpen}
                 startIcon={<AdminPanelSettingsOutlined sx={{ fontSize: 18 }} />}
-                aria-haspopup="menu"
+                aria-haspopup="true"
                 aria-expanded={Boolean(operationsAnchorEl)}
                 sx={{ color: '#CBD5E1', fontWeight: 600, minWidth: 'auto', px: 1, whiteSpace: 'nowrap' }}
               >
@@ -274,64 +311,39 @@ function Navigation() {
             )}
           </Box>
 
-          <Menu
-            anchorEl={operationsAnchorEl}
+          <Popover
             open={Boolean(operationsAnchorEl)}
+            anchorEl={operationsAnchorEl}
             onClose={handleOperationsMenuClose}
-            PaperProps={{ sx: { minWidth: 240, maxHeight: 'calc(100vh - 96px)', borderRadius: 2.5 } }}
-            transformOrigin={{ horizontal: 'left', vertical: 'top' }}
             anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+            transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+            PaperProps={{ sx: { mt: 1, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: '0 18px 40px -8px rgba(15, 23, 42, 0.25)', maxWidth: 'calc(100vw - 32px)' } }}
           >
-            {(hasPermission('inventory:read') || hasPermission('inventory:view')) && <MenuItem component={RouterLink} to="/inventory" onClick={handleOperationsMenuClose}>
-              <ListItemIcon><Inventory2Outlined fontSize="small" /></ListItemIcon><ListItemText primary="Inventory & Procurement" />
-            </MenuItem>}
-            {hasPermission('stock:read') && <MenuItem component={RouterLink} to="/stock" onClick={handleOperationsMenuClose}>
-              <ListItemIcon><Inventory2Outlined fontSize="small" /></ListItemIcon><ListItemText primary="Stock" />
-            </MenuItem>}
-            {hasPermission('procurement:manage') && <MenuItem component={RouterLink} to="/procurement" onClick={handleOperationsMenuClose}>
-              <ListItemIcon><LocalShippingRounded fontSize="small" /></ListItemIcon><ListItemText primary="Suppliers & Procurement" />
-            </MenuItem>}
-            {hasPermission('pricing:read') && <MenuItem component={RouterLink} to="/products/pricing" onClick={handleOperationsMenuClose}>Pricing & Promotions</MenuItem>}
-            {hasPermission('storefront:read') && <MenuItem component={RouterLink} to="/products/storefront" onClick={handleOperationsMenuClose}>Storefront Management</MenuItem>}
-            {hasPermission('order:view') && <MenuItem component={RouterLink} to="/orders/control" onClick={handleOperationsMenuClose}>Order Management</MenuItem>}
-            {hasPermission('return:view') && <MenuItem component={RouterLink} to="/orders/returns" onClick={handleOperationsMenuClose}>Returns & Refunds</MenuItem>}
-            {hasPermission('catalog:manage') && <MenuItem component={RouterLink} to="/products/manage" onClick={handleOperationsMenuClose}>
-              <ListItemIcon><Inventory2Outlined fontSize="small" /></ListItemIcon><ListItemText primary="Catalog Management" />
-            </MenuItem>}
-            {hasPermission('orders:manage') && <MenuItem component={RouterLink} to="/cart/admin/abandoned" onClick={handleOperationsMenuClose}>
-              <ListItemIcon><ShoppingCartOutlined fontSize="small" /></ListItemIcon><ListItemText primary="Abandoned Carts" />
-            </MenuItem>}
-            <Divider />
-            {hasPermission('analytics:read') && <MenuItem component={RouterLink} to="/analytics" onClick={handleOperationsMenuClose}>
-              <ListItemIcon><InsightsRounded fontSize="small" /></ListItemIcon><ListItemText primary="Analytics" />
-            </MenuItem>}
-            {hasPermission('qa:read') && <MenuItem component={RouterLink} to="/admin/quality-center" onClick={handleOperationsMenuClose}>
-              <ListItemIcon><FactCheckRounded fontSize="small" /></ListItemIcon><ListItemText primary="Quality Center" />
-            </MenuItem>}
-            {hasPermission('errors:manage') && <MenuItem component={RouterLink} to="/error-stack" onClick={handleOperationsMenuClose}>
-              <ListItemIcon><BugReportRounded fontSize="small" /></ListItemIcon><ListItemText primary="Error Stack" />
-            </MenuItem>}
-            <Divider />
-            {hasPermission('accounting:read') && <MenuItem component={RouterLink} to="/accounting" onClick={handleOperationsMenuClose}>
-              <ListItemIcon><AccountBalanceRounded fontSize="small" /></ListItemIcon><ListItemText primary="Accounting" />
-            </MenuItem>}
-            {hasPermission('crm:read') && <MenuItem component={RouterLink} to="/crm" onClick={handleOperationsMenuClose}>
-              <ListItemIcon><PeopleAltRounded fontSize="small" /></ListItemIcon><ListItemText primary="Advanced CRM" />
-            </MenuItem>}
-            {hasPermission('orders:manage') && <MenuItem component={RouterLink} to="/orders/admin" onClick={handleOperationsMenuClose}>
-              <ListItemIcon><LocalShippingOutlined fontSize="small" /></ListItemIcon><ListItemText primary="Admin Orders" />
-            </MenuItem>}
-            {hasPermission('roles:manage') && (
-              <MenuItem component={RouterLink} to="/profile/admin" onClick={handleOperationsMenuClose}>
-                <ListItemIcon><AdminPanelSettingsOutlined fontSize="small" /></ListItemIcon><ListItemText primary="User Admin" />
-              </MenuItem>
-            )}
-            {hasPermission('tenant:users.read') && (
-              <MenuItem component={RouterLink} to="/profile/team" onClick={handleOperationsMenuClose}>
-                <ListItemIcon><PeopleAltRounded fontSize="small" /></ListItemIcon><ListItemText primary="Client Team" />
-              </MenuItem>
-            )}
-          </Menu>
+            <Box
+              component="nav"
+              aria-label="Operations"
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(220px, 1fr))', lg: `repeat(${Math.min(3, operationsGroups.length)}, minmax(230px, 1fr))` },
+                gap: 1,
+                p: 1.5,
+                maxHeight: 'calc(100vh - 120px)',
+                overflowY: 'auto',
+              }}
+            >
+              {operationsGroups.map(({ group, items }) => (
+                <List key={group} dense disablePadding aria-label={group}
+                  subheader={<ListSubheader disableSticky sx={{ lineHeight: '32px', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#64748B', bgcolor: 'transparent' }}>{group}</ListSubheader>}>
+                  {items.map((item) => (
+                    <ListItemButton key={item.path} component={RouterLink} to={item.path} onClick={handleOperationsMenuClose} sx={{ borderRadius: 2, py: 0.75 }}>
+                      <ListItemIcon sx={{ minWidth: 34, color: '#4F46E5' }}>{OPERATIONS_ICONS[item.path]}</ListItemIcon>
+                      <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: 600, fontSize: '0.9rem' }} />
+                    </ListItemButton>
+                  ))}
+                </List>
+              ))}
+            </Box>
+          </Popover>
 
           <Menu
             anchorEl={mobileNavAnchorEl}
@@ -344,27 +356,15 @@ function Navigation() {
             <MenuItem component={RouterLink} to="/loyalty" onClick={handleMobileNavClose}>Rewards</MenuItem>
             <MenuItem component={RouterLink} to="/orders" onClick={handleMobileNavClose}>Orders & Cart</MenuItem>
             {isAuthenticated && <MenuItem component={RouterLink} to="/accounting/ledger" onClick={handleMobileNavClose}>Ledger</MenuItem>}
-            {canViewOperations && (
-              <>
-                <Divider />
-                {(hasPermission('inventory:read') || hasPermission('inventory:view')) && <MenuItem component={RouterLink} to="/inventory" onClick={handleMobileNavClose}>Inventory & Procurement</MenuItem>}
-                {hasPermission('stock:read') && <MenuItem component={RouterLink} to="/stock" onClick={handleMobileNavClose}>Stock</MenuItem>}
-                {hasPermission('procurement:manage') && <MenuItem component={RouterLink} to="/procurement" onClick={handleMobileNavClose}>Suppliers & Procurement</MenuItem>}
-                {hasPermission('catalog:manage') && <MenuItem component={RouterLink} to="/products/manage" onClick={handleMobileNavClose}>Catalog Management</MenuItem>}
-                {hasPermission('pricing:read') && <MenuItem component={RouterLink} to="/products/pricing" onClick={handleMobileNavClose}>Pricing & Promotions</MenuItem>}
-                {hasPermission('order:view') && <MenuItem component={RouterLink} to="/orders/control" onClick={handleMobileNavClose}>Order Management</MenuItem>}
-                {hasPermission('return:view') && <MenuItem component={RouterLink} to="/orders/returns" onClick={handleMobileNavClose}>Returns & Refunds</MenuItem>}
-                {hasPermission('orders:manage') && <MenuItem component={RouterLink} to="/cart/admin/abandoned" onClick={handleMobileNavClose}>Abandoned Carts</MenuItem>}
-                {hasPermission('analytics:read') && <MenuItem component={RouterLink} to="/analytics" onClick={handleMobileNavClose}>Analytics</MenuItem>}
-                {hasPermission('qa:read') && <MenuItem component={RouterLink} to="/admin/quality-center" onClick={handleMobileNavClose}>Quality Center</MenuItem>}
-                {hasPermission('errors:manage') && <MenuItem component={RouterLink} to="/error-stack" onClick={handleMobileNavClose}>Error Stack</MenuItem>}
-                {hasPermission('accounting:read') && <MenuItem component={RouterLink} to="/accounting" onClick={handleMobileNavClose}>Accounting</MenuItem>}
-                {hasPermission('crm:read') && <MenuItem component={RouterLink} to="/crm" onClick={handleMobileNavClose}>Advanced CRM</MenuItem>}
-                {hasPermission('orders:manage') && <MenuItem component={RouterLink} to="/orders/admin" onClick={handleMobileNavClose}>Admin Orders</MenuItem>}
-                {hasPermission('roles:manage') && <MenuItem component={RouterLink} to="/profile/admin" onClick={handleMobileNavClose}>User &amp; Role Admin</MenuItem>}
-                {hasPermission('tenant:users.read') && <MenuItem component={RouterLink} to="/profile/team" onClick={handleMobileNavClose}>Client Team</MenuItem>}
-              </>
-            )}
+            {canViewOperations && operationsGroups.map(({ group, items }) => [
+              <Divider key={`${group}-divider`} />,
+              <ListSubheader key={`${group}-header`} sx={{ lineHeight: '32px', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#64748B' }}>{group}</ListSubheader>,
+              ...items.map((item) => (
+                <MenuItem key={item.path} component={RouterLink} to={item.path} onClick={handleMobileNavClose}>
+                  <ListItemIcon sx={{ color: '#4F46E5' }}>{OPERATIONS_ICONS[item.path]}</ListItemIcon>{item.label}
+                </MenuItem>
+              )),
+            ])}
           </Menu>
 
           {/* Right Action Icons: Notification, Cart, User Menu */}
@@ -428,7 +428,7 @@ function Navigation() {
                       {user?.name || user?.email?.split('@')[0] || 'User'}
                     </Typography>
                     <Chip
-                      label={user?.role}
+                      label={roleLabel(user?.role) || user?.role}
                       size="small"
                       sx={{
                         height: 18,
@@ -515,7 +515,7 @@ function Navigation() {
                     <ListItemText primary="My Transaction Ledger" primaryTypographyProps={{ fontWeight: 600 }} />
                   </MenuItem>
 
-                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'SUPER_ADMIN') && (
+                  {(hasPermission('inventory:read') || hasPermission('inventory:view')) && (
                     <MenuItem
                       component={RouterLink}
                       to="/inventory"
@@ -529,14 +529,14 @@ function Navigation() {
                     </MenuItem>
                   )}
 
-                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'SUPER_ADMIN') && (
+                  {hasPermission('stock:read') && (
                     <MenuItem component={RouterLink} to="/stock" onClick={handleMenuClose} sx={{ py: 1.2 }}>
                       <ListItemIcon><Inventory2Outlined fontSize="small" sx={{ color: '#0F9F8F' }} /></ListItemIcon>
                       <ListItemText primary="Stock levels & reservations" primaryTypographyProps={{ fontWeight: 600 }} />
                     </MenuItem>
                   )}
 
-                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'SUPER_ADMIN') && (
+                  {hasPermission('analytics:read') && (
                     <MenuItem
                       component={RouterLink}
                       to="/analytics"
@@ -550,7 +550,7 @@ function Navigation() {
                     </MenuItem>
                   )}
 
-                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'SUPER_ADMIN') && (
+                  {hasPermission('errors:manage') && (
                     <MenuItem
                       component={RouterLink}
                       to="/error-stack"
@@ -564,7 +564,7 @@ function Navigation() {
                     </MenuItem>
                   )}
 
-                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'SUPER_ADMIN') && (
+                  {hasPermission('crm:read') && (
                     <MenuItem component={RouterLink} to="/crm" onClick={handleMenuClose} sx={{ py: 1.2 }}>
                       <ListItemIcon><PeopleAltRounded fontSize="small" sx={{ color: '#45D6C1' }} /></ListItemIcon>
                       <ListItemText primary="Advanced CRM" primaryTypographyProps={{ fontWeight: 600 }} />
@@ -752,6 +752,7 @@ function App() {
                   <Route path="/" element={<HomePage />} />
                   <Route path="/products/*" element={<ProductApp />} />
                   <Route path="/loyalty/*" element={<ProtectedRoute allowedRoles={[ANY_SIGNED_IN]}><LoyaltyApp /></ProtectedRoute>} />
+                  <Route path="/pos/*" element={<ProtectedRoute allowedRoles={[ANY_SIGNED_IN]}><PosApp /></ProtectedRoute>} />
                   <Route path="/accounting" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN', 'SUPER_ADMIN']} requiredPermission="accounting:read"><AccountingApp /></ProtectedRoute>} />
                   <Route path="/accounting/admin/*" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN', 'SUPER_ADMIN']} requiredPermission="accounting:read"><AccountingApp /></ProtectedRoute>} />
                   <Route path="/accounting/*" element={<ProtectedRoute allowedRoles={[ANY_SIGNED_IN]}><AccountingApp /></ProtectedRoute>} />

@@ -117,3 +117,16 @@ test('restaurant kitchen actions follow the restaurant lifecycle only', () => {
   assert.deepEqual(restaurantActions('DELIVERED'), []);
   assert.deepEqual(restaurantActions('PROCESSING'), []); // retail status: no kitchen actions
 });
+
+test('dashboard sections cover all 17 numbers once and only problems above zero stand out', async () => {
+  const { DASHBOARD_SECTIONS, dashboardTileTone } = await import('../src/control/controlModel.ts');
+  const keys = DASHBOARD_SECTIONS.flatMap((s) => s.tiles.map((t) => t.key));
+  assert.equal(keys.length, 17);
+  assert.equal(new Set(keys).size, 17);
+  const tile = (key: string) => DASHBOARD_SECTIONS.flatMap((s) => s.tiles).find((t) => t.key === key)!;
+  assert.equal(dashboardTileTone(tile('delayedBeyondSla'), 1), 'critical');
+  assert.equal(dashboardTileTone(tile('delayedBeyondSla'), 0), 'neutral');
+  assert.equal(dashboardTileTone(tile('onHold'), 2), 'attention');
+  assert.equal(dashboardTileTone(tile('failed'), null), 'neutral');
+  assert.equal(dashboardTileTone(tile('ordersToday'), 50), 'neutral');
+});

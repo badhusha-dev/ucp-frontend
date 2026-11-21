@@ -3,7 +3,9 @@ import { Alert, Box, Button, Checkbox, FormControlLabel, Grid, MenuItem, Paper, 
 import { DataTable, Loading, StatusChip, money, useLoad, useNotice, when } from './common';
 import { orderApi } from './controlApi';
 import type { Row } from './controlApi';
-import { exceptionTone, formatMinutes } from './controlModel';
+import { DASHBOARD_SECTIONS, dashboardTileTone, exceptionTone, formatMinutes } from './controlModel';
+import { KpiCard } from '@ecommerce/shared-library/src/ui/KpiCard';
+import { formatCount } from '@ecommerce/shared-library/src/ui/format';
 
 // ---- dashboard ----------------------------------------------------------------------------------------------------------------
 
@@ -14,13 +16,7 @@ export function DashboardScreen() {
   const m = useLoad(() => orderApi.dashboard(query), [query]);
   const bad = f.from && f.to && f.to < f.from ? 'The end date is before the start date.' : '';
   const d = m.data;
-  const tiles: [string, string, (v: any) => string][] = d ? [
-    ['Orders today', 'ordersToday', String], ['Orders this month', 'ordersThisMonth', String], ['New orders awaiting processing', 'newOrders', String], ['Awaiting confirmation', 'awaitingConfirmation', String],
-    ['Being processed', 'processing', String], ['Awaiting fulfillment', 'awaitingFulfillment', String], ['On hold', 'onHold', String], ['Delayed beyond SLA', 'delayedBeyondSla', String],
-    ['Delivered (range)', 'delivered', String], ['Cancelled (range)', 'cancelled', String], ['Failed (range)', 'failed', String], ['Orders in range', 'ordersInRange', String],
-    ['Avg processing time', 'averageProcessingMinutes', formatMinutes], ['Avg fulfillment time', 'averageFulfillmentMinutes', formatMinutes], ['Avg delivery time', 'averageDeliveryMinutes', formatMinutes],
-    ['Gross order value', 'grossOrderValue', money], ['Pending payment value', 'pendingPaymentValue', money],
-  ] : [];
+
   return (
     <Stack spacing={2}>
       <Paper variant="outlined" sx={{ p: 2 }}>
@@ -36,13 +32,22 @@ export function DashboardScreen() {
           <Button variant="contained" disabled={!!bad} onClick={() => setApplied(f)}>Apply</Button>
         </Stack>
       </Paper>
-      <Loading loading={m.loading} error={m.error} />
+      <Loading loading={m.loading} error={m.error} onRetry={m.reload} layout="cards" />
       {d && <>
-        <Typography variant="caption" color="text.secondary">Date range {d.range.from} to {d.range.to}. Queue sizes are current; delivered, cancelled and failed count orders created in the range.{d.truncated ? ' Averages use the first 20,000 orders.' : ''}</Typography>
-        <Grid container spacing={2}>{tiles.map(([label, key, fmt]) => (
-          <Grid item xs={6} md={3} key={key}><Paper variant="outlined" sx={{ p: 2 }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="h5">{d[key] === null || d[key] === undefined ? '—' : fmt(d[key])}</Typography></Paper></Grid>
-        ))}</Grid>
-        <Typography variant="caption" color="text.secondary">Order amounts are shown without a currency symbol: orders do not store a currency code.</Typography>
+        <Typography variant="body2" color="text.secondary">Date range {d.range.from} to {d.range.to}. Queue sizes are current; outcomes count orders created in the range.{d.truncated ? ' Averages use the first 20,000 orders.' : ''}</Typography>
+        {DASHBOARD_SECTIONS.map((section) => (
+          <Box key={section.title} component="section" aria-label={section.title}>
+            <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mb: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>{section.title}</Typography>
+              <Typography variant="caption" color="text.secondary">{section.hint}</Typography>
+            </Stack>
+            <Grid container spacing={2}>{section.tiles.map((tile) => {
+              const raw = d[tile.key];
+              const shown = raw === null || raw === undefined ? '—' : tile.format === 'minutes' ? formatMinutes(raw) : tile.format === 'amount' ? money(raw) : formatCount(raw);
+              return <Grid item xs={6} md={4} key={tile.key}><KpiCard label={tile.label} value={shown} tone={dashboardTileTone(tile, raw)} /></Grid>;
+            })}</Grid>
+          </Box>
+        ))}
       </>}
     </Stack>
   );
@@ -73,7 +78,7 @@ export function ExceptionsScreen({ can, onOpen }: { can: (p: string) => boolean;
         <Select size="small" displayEmpty value={filters.priority} onChange={(e) => { setFilters({ ...filters, priority: e.target.value }); setPage(0); }}><MenuItem value="">Any priority</MenuItem>{['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((x) => <MenuItem key={x} value={x}>{x}</MenuItem>)}</Select>
         {manage && <Button variant="outlined" onClick={() => run(async () => { const r = await orderApi.scanExceptions(); void list.reload(); return r; }, 'Scan complete.')}>Scan now</Button>}
       </Stack>
-      <Loading loading={list.loading} error={list.error} />
+      <Loading loading={list.loading} error={list.error} onRetry={list.reload} />
       {list.data && <DataTable rows={list.data.content} empty="No exceptions in this view." columns={[
         { header: 'Priority', render: (r) => <StatusChip status={r.priority} tone={exceptionTone(r.priority)} /> }, { header: 'Category', render: (r) => String(r.category).replace(/_/g, ' ') },
         { header: 'Order', render: (r) => <Button size="small" onClick={() => onOpen(r.orderId)}>{r.orderNumber}</Button> }, { header: 'Summary', render: (r) => r.summary },
@@ -116,7 +121,7 @@ export function ReturnsScreen({ onOpen }: { onOpen: (id: number) => void }) {
       <Select size="small" displayEmpty value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }} sx={{ maxWidth: 240 }}>
         <MenuItem value="">All requests</MenuItem>{['REQUESTED', 'APPROVED', 'RECEIVED', 'REFUND_PENDING', 'REFUND_FAILED', 'REFUNDED', 'REJECTED'].map((s) => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
       </Select>
-      <Loading loading={r.loading} error={r.error} />
+      <Loading loading={r.loading} error={r.error} onRetry={r.reload} />
       {r.data && <DataTable rows={r.data.content} empty="No return requests." columns={[
         { header: 'Return', render: (x) => `#${x.id}` }, { header: 'Order', render: (x) => <Button size="small" onClick={() => onOpen(x.orderId)}>{x.orderNumber}</Button> }, { header: 'Reason', render: (x) => x.reason },
         { header: 'Items', render: (x) => (x.items ?? []).map((i: Row) => `#${i.orderItemId}×${i.quantity}`).join(', ') }, { header: 'Refund amount', align: 'right', render: (x) => money(x.refundAmount) },
@@ -142,7 +147,7 @@ export function ReportsScreen() {
         <TextField size="small" type="date" label="To" InputLabelProps={{ shrink: true }} value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} />
         <Button variant="contained" disabled={!!bad} onClick={() => setApplied({ groupBy, ...range })}>Run report</Button>
       </Stack>
-      <Loading loading={rep.loading} error={rep.error} />
+      <Loading loading={rep.loading} error={rep.error} onRetry={rep.reload} />
       {rep.data && <>
         <Typography variant="caption" color="text.secondary">{rep.data.from} to {rep.data.to} · {rep.data.totalOrders} orders{rep.data.truncated ? ' (first 20,000 only)' : ''}. Value excludes cancelled, rejected and payment-failed orders.</Typography>
         <DataTable rows={rep.data.series} empty="No orders in this range." columns={[
@@ -189,7 +194,7 @@ export function AuditScreen({ onOpen }: { onOpen: (id: number) => void }) {
         <TextField size="small" label="Action (e.g. TRANSITION, HOLD)" value={action} onChange={(e) => setAction(e.target.value.toUpperCase().replace(/[^A-Z_]/g, ''))} />
         <Button variant="contained" onClick={() => setApplied({ orderId, action })}>Filter</Button>
       </Stack>
-      <Loading loading={a.loading} error={a.error} />
+      <Loading loading={a.loading} error={a.error} onRetry={a.reload} />
       {a.data && <DataTable rows={a.data} empty="No audit entries." columns={[
         { header: 'When', render: (r) => when(r.createdAt) }, { header: 'Order', render: (r) => <Button size="small" onClick={() => onOpen(r.orderId)}>{r.orderNumber}</Button> }, { header: 'Action', render: (r) => r.action },
         { header: 'Previous', render: (r) => r.fromStatus ?? '—' }, { header: 'New', render: (r) => r.toStatus }, { header: 'Actor', render: (r) => r.actorEmail ?? r.source },

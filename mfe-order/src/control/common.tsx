@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Alert, Box, Chip, CircularProgress, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
+import { Alert, Chip, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { EmptyState, ErrorState, LoadingState } from '@ecommerce/shared-library/src/ui/StateViews';
+import { formatAmount } from '@ecommerce/shared-library/src/ui/format';
 import { errorMessage } from './controlApi';
 import { slaTone, statusTone } from './controlModel';
 import type { Tone } from './controlModel';
@@ -19,9 +21,10 @@ export function useLoad<T>(loader: () => Promise<T>, deps: unknown[] = []) {
   return { data, loading, error, reload };
 }
 
-export function Loading({ loading, error }: { loading: boolean; error: string }) {
-  if (loading) return <Box sx={{ py: 3, textAlign: 'center' }}><CircularProgress size={24} /></Box>;
-  if (error) return <Alert severity="error" sx={{ my: 1 }}>{error}</Alert>;
+/** Placeholder rows while loading; a failed load says what went wrong and offers a retry. */
+export function Loading({ loading, error, onRetry, layout = 'table' }: { loading: boolean; error: string; onRetry?: () => void; layout?: 'table' | 'cards' | 'lines' }) {
+  if (loading) return <LoadingState layout={layout} rows={layout === 'cards' ? 8 : 5} />;
+  if (error) return <ErrorState message={error} onRetry={onRetry} />;
   return null;
 }
 
@@ -33,7 +36,7 @@ export function StatusChip({ status, tone }: { status: string; tone?: Tone }) {
 export interface Column<R> { header: string; render: (row: R) => ReactNode; align?: 'right' }
 
 export function DataTable<R extends Record<string, any>>({ rows, columns, empty }: { rows: R[]; columns: Column<R>[]; empty: string }) {
-  if (rows.length === 0) return <Typography color="text.secondary" sx={{ py: 2 }}>{empty}</Typography>;
+  if (rows.length === 0) return <EmptyState compact title={empty} />;
   return (
     <TableContainer component={Paper} variant="outlined">
       <Table size="small">
@@ -54,7 +57,8 @@ export function useNotice() {
 }
 
 export const when = (v?: string | null) => (v ? new Date(v).toLocaleString() : '—');
-export const money = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : Number(v).toFixed(2));
+// Orders store no currency code, so amounts show separators and two decimals but no symbol.
+export const money = (v: unknown) => formatAmount(v);
 
 export function slaChip(sla?: { indicator: string; phase: string; elapsedMinutes: number; thresholdMinutes: number } | null) {
   if (!sla || sla.indicator === 'NONE') return null;

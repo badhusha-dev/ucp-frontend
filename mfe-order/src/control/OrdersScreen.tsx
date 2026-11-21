@@ -144,7 +144,7 @@ export default function OrdersScreen({ view = '', title, can, role, permissions,
       </Menu>
 
       {selected.length > 0 && <BulkBar selected={selected} actions={bulkActions} onDone={() => { setSelected([]); void list.reload(); }} onClear={() => setSelected([])} />}
-      <Loading loading={list.loading} error={list.error} />
+      <Loading loading={list.loading} error={list.error} onRetry={list.reload} />
       {list.data && (
         <Paper variant="outlined">
           <TableContainer sx={{ overflowX: 'auto' }}>

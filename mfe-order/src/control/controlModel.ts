@@ -200,3 +200,47 @@ export function restaurantActions(status: string): { action: string; label: stri
     default: return [];
   }
 }
+
+// ---- dashboard layout ------------------------------------------------------------------------------------------------------------
+
+export type DashboardFormat = 'count' | 'minutes' | 'amount';
+export type DashboardTone = 'neutral' | 'good' | 'attention' | 'critical';
+export interface DashboardTile { key: string; label: string; format: DashboardFormat; problem?: 'attention' | 'critical' }
+
+/** The dashboard's numbers in sections, so queues, volume, outcomes, timing and value read as separate questions. */
+export const DASHBOARD_SECTIONS: ReadonlyArray<{ title: string; hint: string; tiles: readonly DashboardTile[] }> = [
+  { title: 'Queues right now', hint: 'Orders waiting on your team at this moment.', tiles: [
+    { key: 'delayedBeyondSla', label: 'Delayed beyond SLA', format: 'count', problem: 'critical' },
+    { key: 'onHold', label: 'On hold', format: 'count', problem: 'attention' },
+    { key: 'newOrders', label: 'New, awaiting processing', format: 'count' },
+    { key: 'awaitingConfirmation', label: 'Awaiting confirmation', format: 'count' },
+    { key: 'processing', label: 'Being processed', format: 'count' },
+    { key: 'awaitingFulfillment', label: 'Awaiting fulfillment', format: 'count' },
+  ] },
+  { title: 'Volume', hint: 'Orders placed.', tiles: [
+    { key: 'ordersToday', label: 'Orders today', format: 'count' },
+    { key: 'ordersThisMonth', label: 'Orders this month', format: 'count' },
+    { key: 'ordersInRange', label: 'Orders in range', format: 'count' },
+  ] },
+  { title: 'Outcomes in range', hint: 'Orders created in the selected range, by how they ended.', tiles: [
+    { key: 'delivered', label: 'Delivered', format: 'count' },
+    { key: 'cancelled', label: 'Cancelled', format: 'count' },
+    { key: 'failed', label: 'Failed', format: 'count', problem: 'critical' },
+  ] },
+  { title: 'Timing', hint: 'Average time per step for orders in the range.', tiles: [
+    { key: 'averageProcessingMinutes', label: 'Avg processing time', format: 'minutes' },
+    { key: 'averageFulfillmentMinutes', label: 'Avg fulfillment time', format: 'minutes' },
+    { key: 'averageDeliveryMinutes', label: 'Avg delivery time', format: 'minutes' },
+  ] },
+  { title: 'Value', hint: 'Order amounts carry no currency code, so none is shown.', tiles: [
+    { key: 'grossOrderValue', label: 'Gross order value', format: 'amount' },
+    { key: 'pendingPaymentValue', label: 'Pending payment value', format: 'amount' },
+  ] },
+];
+
+/** A problem tile stands out only when its count is above zero; every other tile stays neutral. */
+export function dashboardTileTone(tile: DashboardTile, value: unknown): DashboardTone {
+  if (!tile.problem) return 'neutral';
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? tile.problem : 'neutral';
+}
