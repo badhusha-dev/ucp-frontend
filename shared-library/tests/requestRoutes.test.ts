@@ -14,6 +14,8 @@ describe('requestPath', () => {
 describe('applicationForRequest', () => {
   it('maps tenant-scoped admin APIs to their application', () => {
     assert.equal(applicationForRequest('/api/products/admin/pricing/dashboard'), 'ECOMMERCE_ADMIN');
+    // product-service accepts only a tenant-scoped E-commerce Admin token anywhere under /api/products/admin.
+    assert.equal(applicationForRequest('/api/products/admin/analytics/inventory'), 'ECOMMERCE_ADMIN');
     assert.equal(applicationForRequest('/api/orders/admin/analytics/overview'), 'ECOMMERCE_ADMIN');
     assert.equal(applicationForRequest('/api/stock/admin/items'), 'ECOMMERCE_ADMIN');
     assert.equal(applicationForRequest('/api/crm/contacts'), 'ECOMMERCE_ADMIN');
@@ -21,6 +23,8 @@ describe('applicationForRequest', () => {
     assert.equal(applicationForRequest('/api/procurement/suppliers'), 'ECOMMERCE_ADMIN');
     assert.equal(applicationForRequest('/api/procurement/ucp/suppliers'), 'INVENTORY');
     assert.equal(applicationForRequest('/api/accounting/admin/ledger'), 'ACCOUNTING');
+    assert.equal(applicationForRequest('/api/pos/sales?from=2026-11-21'), 'RETAIL_POS');
+    assert.equal(applicationForRequest('/api/pos'), 'RETAIL_POS');
     assert.equal(applicationForRequest('/api/admin/qa/runs'), 'QUALITY_CENTER');
     assert.equal(applicationForRequest('/api/loyalty/admin/stats'), 'ECOMMERCE_ADMIN');
     assert.equal(applicationForRequest('/api/loyalty/42/bonus'), 'ECOMMERCE_ADMIN');
@@ -31,7 +35,7 @@ describe('applicationForRequest', () => {
   it('keeps the platform token for storefront, own-account and non-tenant APIs', () => {
     for (const url of ['/api/products', '/api/products/7', '/api/cart', '/api/orders/checkout', '/api/orders/5',
       '/api/orders', '/api/users/42', '/api/loyalty/42', '/api/loyalty/42/transactions', '/api/errors/ingest',
-      '/api/accounting/balance', '/api/products/admin/analytics/inventory', '/api/stock/101']) {
+      '/api/accounting/balance', '/api/stock/101']) {
       assert.equal(applicationForRequest(url), undefined, url);
     }
   });

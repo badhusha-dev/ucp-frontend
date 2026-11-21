@@ -6,7 +6,6 @@ type Rule = { pattern: RegExp; application: ApplicationCode | null };
 
 // First match wins. `null` means "platform token" for an admin path that is not tenant-scoped.
 const RULES: Rule[] = [
-  { pattern: /^\/api\/products\/admin\/analytics(\/|$)/, application: null },
   { pattern: /^\/api\/products\/admin(\/|$)/, application: 'ECOMMERCE_ADMIN' },
   { pattern: /^\/api\/orders\/admin(\/|$)/, application: 'ECOMMERCE_ADMIN' },
   { pattern: /^\/api\/stock\/admin(\/|$)/, application: 'ECOMMERCE_ADMIN' },
@@ -20,6 +19,7 @@ const RULES: Rule[] = [
   { pattern: /^\/api\/accounting\/admin(\/|$)/, application: 'ACCOUNTING' },
   { pattern: /^\/api\/admin\/qa(\/|$)/, application: 'QUALITY_CENTER' },
   { pattern: /^\/api\/delivery(\/|$)/, application: 'DELIVERY_OPS' },
+  { pattern: /^\/api\/pos(\/|$)/, application: 'RETAIL_POS' },
   // Client team administration (role engine v2) runs on the E-commerce Admin session until the launcher (step 2).
   { pattern: /^\/api\/tenant(\/|$)/, application: 'ECOMMERCE_ADMIN' },
 ];
