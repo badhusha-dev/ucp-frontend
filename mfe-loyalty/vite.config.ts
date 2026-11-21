@@ -9,7 +9,7 @@ export default defineConfig({
       name: 'loyalty_mfe',
       filename: 'remoteEntry.js',
       exposes: {
-        './App': './src/App',
+        './App': './src/ThemedApp',
         './LoyaltyDashboardPage': './src/pages/LoyaltyDashboardPage',
         './LoyaltyAdminPage': './src/pages/LoyaltyAdminPage',
       },

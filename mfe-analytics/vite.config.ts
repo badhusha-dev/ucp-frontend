@@ -8,7 +8,7 @@ export default defineConfig({
     federation({
       name: 'analytics_mfe',
       filename: 'remoteEntry.js',
-      exposes: { './App': './src/App' },
+      exposes: { './App': './src/ThemedApp' },
       shared: ['react', 'react-dom', 'react-router-dom'],
     }),
   ],

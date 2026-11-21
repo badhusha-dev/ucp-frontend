@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { ApplicationCode } from '../config/applicationRegistry';
+import { roleLabel } from '../ui/format';
 import {
   clearApplicationSession,
   exchangeForApplication,
@@ -54,7 +55,7 @@ export function ApplicationGate({ applicationCode, applicationName, children }: 
   return (
     <>
       <div style={styles.bar} data-testid="application-session-bar">
-        <span style={styles.muted}>{applicationName} · {session.tenantName || session.tenantSlug} · {session.role}</span>
+        <span style={styles.muted}>{applicationName} · {session.tenantName || session.tenantSlug} · {roleLabel(session.role) || session.role}</span>
         <button type="button" onClick={signOut} style={styles.linkButton}>Switch workspace</button>
       </div>
       {children}

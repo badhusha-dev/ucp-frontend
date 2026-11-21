@@ -9,7 +9,7 @@ export default defineConfig({
       name: 'order_mfe',
       filename: 'remoteEntry.js',
       exposes: {
-        './App': './src/App',
+        './App': './src/ThemedApp',
       },
       shared: {
         'react': { singleton: true, requiredVersion: false },
@@ -20,6 +20,10 @@ export default defineConfig({
       }
     })
   ],
+  resolve: {
+    // One MUI/Emotion copy: shared-library/src/ui is imported by path and would otherwise pick up the library's nested MUI 5.
+    dedupe: ['@mui/material', '@mui/system', '@mui/utils', '@mui/styled-engine', '@emotion/react', '@emotion/styled'],
+  },
   server: {
     proxy: { '/api': { target: 'http://localhost:8080', changeOrigin: true } },
     port: 3002,

@@ -9,7 +9,7 @@ export default defineConfig({
       name: 'inventory_mfe',
       filename: 'remoteEntry.js',
       exposes: {
-        './App': './src/App',
+        './App': './src/ThemedApp',
       },
       shared: ['react', 'react-dom', 'react-redux', 'react-router-dom']
     })

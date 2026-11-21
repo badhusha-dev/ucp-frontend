@@ -9,7 +9,7 @@ export default defineConfig({
       name: 'product_mfe',
       filename: 'remoteEntry.js',
       exposes: {
-        './App': './src/App',
+        './App': './src/ThemedApp',
       },
       shared: {
         'react': { singleton: true, requiredVersion: false },

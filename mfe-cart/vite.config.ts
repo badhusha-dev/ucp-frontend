@@ -9,7 +9,7 @@ export default defineConfig({
       name: 'cart_mfe',
       filename: 'remoteEntry.js',
       exposes: {
-        './App': './src/App',
+        './App': './src/ThemedApp',
         './CartPage': './src/pages/CartPage',
         './CartDrawer': './src/components/CartDrawer',
         './AbandonedCartsAdminPage': './src/pages/AbandonedCartsAdminPage'
