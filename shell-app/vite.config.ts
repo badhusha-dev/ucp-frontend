@@ -20,6 +20,7 @@ export default defineConfig({
         error_stack_mfe: 'http://localhost:3010/assets/remoteEntry.js',
         crm_mfe: 'http://localhost:3011/assets/remoteEntry.js',
         procurement_mfe: 'http://localhost:3012/assets/remoteEntry.js',
+        pos_mfe: 'http://localhost:3015/assets/remoteEntry.js',
       },
       shared: {
         'react': { singleton: true, requiredVersion: false },

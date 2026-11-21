@@ -15,6 +15,7 @@ export const APPLICATION_CODES = [
   'CRM',
   'QUALITY_CENTER',
   'CUSTOMER_SUPPORT',
+  'RETAIL_POS',
 ] as const;
 
 export type ApplicationCode = (typeof APPLICATION_CODES)[number];
@@ -42,6 +43,8 @@ export const APPLICATION_REGISTRY: Readonly<Record<ApplicationCode, ApplicationD
   CRM: { code: 'CRM', displayName: 'CRM', status: 'PLANNED', origin: '', loginPath: '/login' },
   QUALITY_CENTER: { code: 'QUALITY_CENTER', displayName: 'Tester / Quality Center', status: 'ACTIVE', origin: '', loginPath: '/login' },
   CUSTOMER_SUPPORT: { code: 'CUSTOMER_SUPPORT', displayName: 'Customer Support', status: 'PLANNED', origin: '', loginPath: '/login' },
+  // Opens inside the shell (/pos), like Accounting, so it needs no origin of its own.
+  RETAIL_POS: { code: 'RETAIL_POS', displayName: 'Retail Point of Sale', status: 'PLANNED', origin: '', loginPath: '/login' },
 };
 
 export function isApplicationCode(value: unknown): value is ApplicationCode {

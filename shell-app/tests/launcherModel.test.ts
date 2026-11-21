@@ -10,6 +10,7 @@ describe('launcher targets', () => {
     assert.deepEqual(launchTarget('ACCOUNTING', origins), { kind: 'shell', path: '/accounting/admin' });
     assert.deepEqual(launchTarget('INVENTORY', origins), { kind: 'shell', path: '/inventory' });
     assert.deepEqual(launchTarget('QUALITY_CENTER', origins), { kind: 'shell', path: '/admin/quality-center' });
+    assert.deepEqual(launchTarget('RETAIL_POS', origins), { kind: 'shell', path: '/pos' });
   });
 
   it('opens Super Admin and Delivery on their own sites', () => {

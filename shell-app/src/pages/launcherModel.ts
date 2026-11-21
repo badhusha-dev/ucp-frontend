@@ -10,6 +10,7 @@ const SHELL_PATHS: Record<string, string> = {
   ACCOUNTING: '/accounting/admin',
   INVENTORY: '/inventory',
   QUALITY_CENTER: '/admin/quality-center',
+  RETAIL_POS: '/pos',
 };
 
 export interface ExternalOrigins {

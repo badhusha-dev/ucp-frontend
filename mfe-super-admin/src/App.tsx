@@ -20,6 +20,16 @@ type Application = { applicationCode: string; displayName: string; status: strin
 type Member = { userId: number; email: string; name: string; membershipStatus: string; grantActive: boolean; roleKey?: string };
 
 
+
+// Applications the Client access screen can grant, with the roles offered for each (user-service checks every grant).
+const GRANTABLE_APPLICATIONS = ['INVENTORY', 'DELIVERY_OPS', 'RETAIL_POS'];
+const APPLICATION_ROLES: Record<string, string[]> = {
+  INVENTORY: ['WAREHOUSE_OPERATOR'],
+  DELIVERY_OPS: ['DELIVERY_ADMIN', 'DISPATCHER', 'DELIVERY_PARTNER', 'DELIVERY_ANALYST'],
+  RETAIL_POS: ['POS_MANAGER', 'POS_SUPERVISOR', 'CASHIER', 'POS_ANALYST'],
+};
+const DEFAULT_ROLE: Record<string, string> = { INVENTORY: 'WAREHOUSE_OPERATOR', DELIVERY_OPS: 'DELIVERY_PARTNER', RETAIL_POS: 'CASHIER' };
+
 export default function App() {
   const [token, setToken] = useState(() => readPlatformSession(sessionStorage)?.token || '');
   // Platform roles (user-service V20): read-only roles see clients but cannot change them. The API enforces the same.
@@ -148,9 +158,7 @@ export default function App() {
   );
 
   const selectedApplication = applications.find((application) => application.applicationCode === selectedApplicationCode);
-  const roles = selectedApplicationCode === 'DELIVERY_OPS'
-    ? ['DELIVERY_ADMIN', 'DISPATCHER', 'DELIVERY_PARTNER', 'DELIVERY_ANALYST']
-    : ['WAREHOUSE_OPERATOR'];
+  const roles = APPLICATION_ROLES[selectedApplicationCode] ?? ['WAREHOUSE_OPERATOR'];
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#F4F7FB' }}>
@@ -174,9 +182,9 @@ export default function App() {
                 {tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.displayName} · {tenant.slug}</option>)}
               </TextField>
               {selectedTenant && <Stack direction="row" spacing={1} alignItems="center"><Chip size="small" label={selectedTenant.status} color={selectedTenant.status === 'ACTIVE' ? 'success' : 'default'} /><Typography variant="body2" color="text.secondary">{selectedTenant.id}</Typography></Stack>}
-              <TextField select SelectProps={{ native: true }} label="Application" value={selectedApplicationCode} onChange={(event) => { setSelectedApplicationCode(event.target.value); setSelectedRoleKey(event.target.value === 'DELIVERY_OPS' ? 'DELIVERY_PARTNER' : 'WAREHOUSE_OPERATOR'); }} sx={{ minWidth: { md: 240 } }}>
-                {applications.filter((application) => ['INVENTORY', 'DELIVERY_OPS'].includes(application.applicationCode)).map((application) => <option key={application.applicationCode} value={application.applicationCode}>{application.displayName || application.applicationCode}</option>)}
-                {!applications.some((application) => ['INVENTORY', 'DELIVERY_OPS'].includes(application.applicationCode)) && <option value={selectedApplicationCode}>{selectedApplicationCode}</option>}
+              <TextField select SelectProps={{ native: true }} label="Application" value={selectedApplicationCode} onChange={(event) => { setSelectedApplicationCode(event.target.value); setSelectedRoleKey(DEFAULT_ROLE[event.target.value] ?? 'WAREHOUSE_OPERATOR'); }} sx={{ minWidth: { md: 240 } }}>
+                {applications.filter((application) => GRANTABLE_APPLICATIONS.includes(application.applicationCode)).map((application) => <option key={application.applicationCode} value={application.applicationCode}>{application.displayName || application.applicationCode}</option>)}
+                {!applications.some((application) => GRANTABLE_APPLICATIONS.includes(application.applicationCode)) && <option value={selectedApplicationCode}>{selectedApplicationCode}</option>}
               </TextField>
             </Stack>
           </CardContent></Card>

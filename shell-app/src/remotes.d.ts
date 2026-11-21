@@ -6,6 +6,7 @@ declare module 'stock_mfe/App';
 declare module 'cart_mfe/App';
 declare module 'loyalty_mfe/App';
 declare module 'accounting_mfe/App';
+declare module 'pos_mfe/App';
 declare module 'analytics_mfe/App';
 declare module 'crm_mfe/App';
 declare module 'procurement_mfe/App';
