@@ -120,7 +120,7 @@ export function ApplicationSignIn({ applicationCode, applicationName, onAuthenti
               <button key={workspace.tenantId} type="button" disabled={submitting} style={styles.workspace}
                 onClick={() => void run(() => exchangeForApplication({ applicationCode, tenantSlug: workspace.slug }, token!))}>
                 <strong>{workspace.name}</strong>
-                <span style={styles.muted}>{workspace.slug}{role ? ` · ${role}` : ''}</span>
+                <span style={styles.muted}>{workspace.slug}{role ? ` · ${roleLabel(role) || role}` : ''}</span>
               </button>
             );
           })}

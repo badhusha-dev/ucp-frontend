@@ -88,6 +88,28 @@ const OPERATIONS_ICONS: Record<string, React.ReactNode> = {
   '/profile/team': <PeopleAltRounded fontSize="small" />,
 };
 
+interface MenuLink { to: string; label: string; icon: React.ReactNode }
+
+// The account menu: the person's own pages, then short links to workspace screens they can open.
+const ACCOUNT_LINKS: MenuLink[] = [
+  { to: '/profile', label: 'Profile & orders', icon: <PersonOutlineRounded fontSize="small" sx={{ color: '#4F46E5' }} /> },
+  { to: '/apps', label: 'My applications', icon: <AppsRounded fontSize="small" sx={{ color: '#4F46E5' }} /> },
+  { to: '/profile/security', label: 'Account security', icon: <LockOutlined fontSize="small" sx={{ color: '#0F172A' }} /> },
+  { to: '/profile/addresses', label: 'Address book', icon: <LocalShippingOutlined fontSize="small" sx={{ color: '#06B6D4' }} /> },
+  { to: '/accounting/ledger', label: 'Transaction ledger', icon: <ReceiptLongRounded fontSize="small" sx={{ color: '#10B981' }} /> },
+];
+
+const WORKSPACE_LINKS: Array<MenuLink & { permissions: string[] }> = [
+  { to: '/pos', label: 'Point of Sale', permissions: ['pos:sell', 'pos:report', 'pos:manage'], icon: <PointOfSaleRounded fontSize="small" sx={{ color: '#4F46E5' }} /> },
+  { to: '/inventory', label: 'Inventory hub', permissions: ['inventory:read', 'inventory:view'], icon: <Inventory2Outlined fontSize="small" sx={{ color: '#6366F1' }} /> },
+  { to: '/stock', label: 'Stock & reservations', permissions: ['stock:read'], icon: <Inventory2Outlined fontSize="small" sx={{ color: '#0F9F8F' }} /> },
+  { to: '/analytics', label: 'Analytics & KPIs', permissions: ['analytics:read'], icon: <InsightsRounded fontSize="small" sx={{ color: '#06B6D4' }} /> },
+  { to: '/error-stack', label: 'Error Stack', permissions: ['errors:manage'], icon: <BugReportRounded fontSize="small" sx={{ color: '#EF4444' }} /> },
+  { to: '/crm', label: 'Advanced CRM', permissions: ['crm:read'], icon: <PeopleAltRounded fontSize="small" sx={{ color: '#45D6C1' }} /> },
+  { to: '/accounting/admin', label: 'Accounting governance', permissions: ['accounting:approve'], icon: <AccountBalanceRounded fontSize="small" sx={{ color: '#F59E0B' }} /> },
+  { to: '/profile/admin', label: 'User management', permissions: ['roles:manage'], icon: <AdminPanelSettingsOutlined fontSize="small" sx={{ color: '#7C3AED' }} /> },
+];
+
 // Lazy loading remote modules via Webpack/Vite Module Federation
 const ProductApp = lazy(() => import('product_mfe/App').catch(() => ({ default: () => <Box sx={{ p: 4, textAlign: 'center', color: '#EF4444' }}>Failed to load Product MFE</Box> })));
 const OrderApp = lazy(() => import('order_mfe/App').catch(() => ({ default: () => <Box sx={{ p: 4, textAlign: 'center', color: '#EF4444' }}>Failed to load Order MFE</Box> })));
@@ -125,6 +147,8 @@ function Navigation() {
   // Shown whenever at least one Operations item is: order, returns, pricing, storefront and catalog roles included.
   const canViewOperations = canViewOperationsMenu(hasPermission);
   const operationsGroups = visibleOperations(hasPermission);
+  // Account-menu shortcuts to the workspace screens this person may open (the Operations menu lists them all).
+  const workspaceLinks = WORKSPACE_LINKS.filter((link) => link.permissions.some(hasPermission));
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -448,176 +472,74 @@ function Navigation() {
                   anchorEl={anchorEl}
                   open={openMenu}
                   onClose={handleMenuClose}
+                  MenuListProps={{ dense: true, sx: { py: 0 }, 'aria-label': 'Account menu' }}
                   PaperProps={{
                     sx: {
-                      width: 260,
-                      mt: 1.5,
+                      width: 'min(320px, calc(100vw - 24px))',
+                      // Fits below the account button, so it never covers the header; scrolls on short screens.
+                      maxHeight: 'calc(100vh - 128px)',
+                      mt: 1,
                       borderRadius: 3,
+                      overflowY: 'auto',
                       boxShadow: '0 16px 36px -4px rgba(15, 23, 42, 0.2)',
                       border: '1px solid #E2E8F0',
+                      '& .MuiMenuItem-root': { py: 0.75, px: 2, borderRadius: 1.5, mx: 1, my: 0.125 },
+                      '& .MuiListItemIcon-root': { minWidth: 34 },
+                      '& .MuiListItemText-primary': { fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
                     },
                   }}
                   transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                   anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 >
-                  <Box sx={{ px: 2.5, py: 1.5 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                      {user?.name || 'Account'}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: '#64748B', display: 'block' }}>
-                      {user?.email}
-                    </Typography>
-                    <Chip
-                      label={`Role: ${user?.role}`}
-                      size="small"
-                      color="primary"
-                      sx={{ mt: 1, fontWeight: 700 }}
-                    />
+                  {/* Who is signed in: stays visible while the list scrolls on short screens. */}
+                  <Box sx={{ px: 2.5, pt: 2, pb: 1.5, position: 'sticky', top: 0, zIndex: 1, bgcolor: '#FFFFFF', borderBottom: '1px solid #E2E8F0' }}>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                      <Avatar sx={{ width: 40, height: 40, bgcolor: '#4F46E5', fontWeight: 800 }}>
+                        {user?.name ? user.name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
+                      </Avatar>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="subtitle2" noWrap sx={{ fontWeight: 800, lineHeight: 1.3 }} title={user?.name || undefined}>
+                          {user?.name || 'Account'}
+                        </Typography>
+                        <Typography variant="caption" noWrap sx={{ color: '#64748B', display: 'block' }} title={user?.email || undefined}>
+                          {user?.email}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                    <Chip label={roleLabel(user?.role) || user?.role || 'User'} size="small" color="primary" sx={{ mt: 1.25, fontWeight: 700 }} />
                   </Box>
-                  <Divider />
 
-                  <MenuItem
-                    component={RouterLink}
-                    to="/profile"
-                    onClick={handleMenuClose}
-                    sx={{ py: 1.2 }}
-                  >
-                    <ListItemIcon>
-                      <PersonOutlineRounded fontSize="small" sx={{ color: '#4F46E5' }} />
-                    </ListItemIcon>
-                    <ListItemText primary="My Profile & Orders" primaryTypographyProps={{ fontWeight: 600 }} />
+                  <ListSubheader disableSticky sx={{ lineHeight: '32px', mt: 0.5, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#94A3B8' }}>
+                    My account
+                  </ListSubheader>
+                  {ACCOUNT_LINKS.map((link) => (
+                    <MenuItem key={link.to} component={RouterLink} to={link.to} onClick={handleMenuClose}>
+                      <ListItemIcon>{link.icon}</ListItemIcon>
+                      <ListItemText primary={link.label} />
+                    </MenuItem>
+                  ))}
+
+                  {workspaceLinks.length > 0 && <Divider sx={{ my: 0.75 }} />}
+                  {workspaceLinks.length > 0 && (
+                    <ListSubheader disableSticky sx={{ lineHeight: '32px', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#94A3B8' }}>
+                      Workspace tools
+                    </ListSubheader>
+                  )}
+                  {workspaceLinks.map((link) => (
+                    <MenuItem key={link.to} component={RouterLink} to={link.to} onClick={handleMenuClose} title={link.label}>
+                      <ListItemIcon>{link.icon}</ListItemIcon>
+                      <ListItemText primary={link.label} />
+                    </MenuItem>
+                  ))}
+
+                  <Divider sx={{ my: 0.75 }} />
+                  <MenuItem component={RouterLink} to="/login" onClick={handleMenuClose}>
+                    <ListItemIcon><KeyRounded fontSize="small" sx={{ color: '#6366F1' }} /></ListItemIcon>
+                    <ListItemText primary="Switch account" />
                   </MenuItem>
-
-                  <MenuItem component={RouterLink} to="/apps" onClick={handleMenuClose} sx={{ py: 1.2 }}>
-                    <ListItemIcon><AppsRounded fontSize="small" sx={{ color: '#4F46E5' }} /></ListItemIcon>
-                    <ListItemText primary="My Applications" primaryTypographyProps={{ fontWeight: 600 }} />
-                  </MenuItem>
-
-                  <MenuItem component={RouterLink} to="/profile/security" onClick={handleMenuClose} sx={{ py: 1.2 }}>
-                    <ListItemIcon><LockOutlined fontSize="small" sx={{ color: '#0F172A' }} /></ListItemIcon>
-                    <ListItemText primary="Account Security" primaryTypographyProps={{ fontWeight: 600 }} />
-                  </MenuItem>
-
-                  <MenuItem component={RouterLink} to="/profile/addresses" onClick={handleMenuClose} sx={{ py: 1.2 }}>
-                    <ListItemIcon><LocalShippingOutlined fontSize="small" sx={{ color: '#06B6D4' }} /></ListItemIcon>
-                    <ListItemText primary="My Address Book" primaryTypographyProps={{ fontWeight: 600 }} />
-                  </MenuItem>
-
-                  <MenuItem
-                    component={RouterLink}
-                    to="/accounting/ledger"
-                    onClick={handleMenuClose}
-                    sx={{ py: 1.2 }}
-                  >
-                    <ListItemIcon>
-                      <ReceiptLongRounded fontSize="small" sx={{ color: '#10B981' }} />
-                    </ListItemIcon>
-                    <ListItemText primary="My Transaction Ledger" primaryTypographyProps={{ fontWeight: 600 }} />
-                  </MenuItem>
-
-                  {(hasPermission('inventory:read') || hasPermission('inventory:view')) && (
-                    <MenuItem
-                      component={RouterLink}
-                      to="/inventory"
-                      onClick={handleMenuClose}
-                      sx={{ py: 1.2 }}
-                    >
-                      <ListItemIcon>
-                        <Inventory2Outlined fontSize="small" sx={{ color: '#6366F1' }} />
-                      </ListItemIcon>
-                      <ListItemText primary="Authoritative Inventory Hub" primaryTypographyProps={{ fontWeight: 600 }} />
-                    </MenuItem>
-                  )}
-
-                  {hasPermission('stock:read') && (
-                    <MenuItem component={RouterLink} to="/stock" onClick={handleMenuClose} sx={{ py: 1.2 }}>
-                      <ListItemIcon><Inventory2Outlined fontSize="small" sx={{ color: '#0F9F8F' }} /></ListItemIcon>
-                      <ListItemText primary="Stock levels & reservations" primaryTypographyProps={{ fontWeight: 600 }} />
-                    </MenuItem>
-                  )}
-
-                  {hasPermission('analytics:read') && (
-                    <MenuItem
-                      component={RouterLink}
-                      to="/analytics"
-                      onClick={handleMenuClose}
-                      sx={{ py: 1.2 }}
-                    >
-                      <ListItemIcon>
-                        <InsightsRounded fontSize="small" sx={{ color: '#06B6D4' }} />
-                      </ListItemIcon>
-                      <ListItemText primary="Business Analytics & KPIs" primaryTypographyProps={{ fontWeight: 600 }} />
-                    </MenuItem>
-                  )}
-
-                  {hasPermission('errors:manage') && (
-                    <MenuItem
-                      component={RouterLink}
-                      to="/error-stack"
-                      onClick={handleMenuClose}
-                      sx={{ py: 1.2 }}
-                    >
-                      <ListItemIcon>
-                        <BugReportRounded fontSize="small" sx={{ color: '#EF4444' }} />
-                      </ListItemIcon>
-                      <ListItemText primary="Error Stack & Diagnostics" primaryTypographyProps={{ fontWeight: 600 }} />
-                    </MenuItem>
-                  )}
-
-                  {hasPermission('crm:read') && (
-                    <MenuItem component={RouterLink} to="/crm" onClick={handleMenuClose} sx={{ py: 1.2 }}>
-                      <ListItemIcon><PeopleAltRounded fontSize="small" sx={{ color: '#45D6C1' }} /></ListItemIcon>
-                      <ListItemText primary="Advanced CRM" primaryTypographyProps={{ fontWeight: 600 }} />
-                    </MenuItem>
-                  )}
-
-                  {hasPermission('accounting:approve') && (
-                    <MenuItem
-                      component={RouterLink}
-                      to="/accounting/admin"
-                      onClick={handleMenuClose}
-                      sx={{ py: 1.2 }}
-                    >
-                      <ListItemIcon>
-                        <AccountBalanceRounded fontSize="small" sx={{ color: '#F59E0B' }} />
-                      </ListItemIcon>
-                      <ListItemText primary="Accounting Governance" primaryTypographyProps={{ fontWeight: 600 }} />
-                    </MenuItem>
-                  )}
-
-                  {hasPermission('roles:manage') && (
-                    <MenuItem
-                      component={RouterLink}
-                      to="/profile/admin"
-                      onClick={handleMenuClose}
-                      sx={{ py: 1.2 }}
-                    >
-                      <ListItemIcon>
-                        <AdminPanelSettingsOutlined fontSize="small" sx={{ color: '#7C3AED' }} />
-                      </ListItemIcon>
-                      <ListItemText primary="User Management" primaryTypographyProps={{ fontWeight: 600 }} />
-                    </MenuItem>
-                  )}
-
-                  <Divider />
-
-                  <MenuItem
-                    component={RouterLink}
-                    to="/login"
-                    onClick={handleMenuClose}
-                    sx={{ py: 1.2 }}
-                  >
-                    <ListItemIcon>
-                      <KeyRounded fontSize="small" sx={{ color: '#6366F1' }} />
-                    </ListItemIcon>
-                    <ListItemText primary="Switch Account / Login" primaryTypographyProps={{ fontWeight: 600 }} />
-                  </MenuItem>
-
-                  <MenuItem onClick={handleLogout} sx={{ py: 1.2, color: '#EF4444' }}>
-                    <ListItemIcon>
-                      <LogoutRounded fontSize="small" sx={{ color: '#EF4444' }} />
-                    </ListItemIcon>
-                    <ListItemText primary="Sign Out" primaryTypographyProps={{ fontWeight: 600 }} />
+                  <MenuItem onClick={handleLogout} sx={{ color: '#EF4444', mb: 1 }}>
+                    <ListItemIcon><LogoutRounded fontSize="small" sx={{ color: '#EF4444' }} /></ListItemIcon>
+                    <ListItemText primary="Sign out" />
                   </MenuItem>
                 </Menu>
               </>
