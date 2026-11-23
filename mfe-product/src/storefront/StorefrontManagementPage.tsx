@@ -82,7 +82,8 @@ export default function StorefrontManagementPage() {
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Loading loading={list.loading} error={list.error} />
         {!list.loading && !list.error && !storefront && (can('storefront:manage')
-          ? <CreateStorefront onCreated={() => { void list.reload(); }} />
+          ? <><Alert severity="info" sx={{ mb: 2, maxWidth: 560 }}>Create your first storefront to start. The pages on the left (homepage, banners, navigation, theme, SEO, publishing and the rest) open once a storefront exists.</Alert>
+              <CreateStorefront onCreated={() => { void list.reload(); }} /></>
           : <Alert severity="info">No storefront exists for this business yet. Ask a storefront manager to create one.</Alert>)}
         {storefront && <>
           <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 1 }}>
