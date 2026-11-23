@@ -73,7 +73,7 @@ describe('screens and input', () => {
   it('shows screens by permission', () => {
     assert.deepEqual(screensFor(['pos:sell', 'pos:shift']), ['sell', 'receipts', 'shift']);
     assert.deepEqual(screensFor(['pos:report']), ['receipts', 'reports']);
-    assert.deepEqual(screensFor(['pos:sell', 'pos:manage']), ['sell', 'receipts', 'shift', 'reports', 'settings']);
+    assert.deepEqual(screensFor(['pos:sell', 'pos:manage']), ['sell', 'receipts', 'shift', 'products', 'reports', 'settings']);
   });
 
   it('tells scanned codes from names', () => {

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Box, Chip, IconButton, Stack, Tab, Tabs, Tooltip, Typography } from '@mui/material';
 import {
-  FullscreenExitRounded, FullscreenRounded, InsightsRounded, PointOfSaleRounded, ReceiptLongRounded, SettingsRounded, StorefrontRounded, TimerOutlined,
+  FullscreenExitRounded, FullscreenRounded, Inventory2Outlined, InsightsRounded, PointOfSaleRounded, ReceiptLongRounded, SettingsRounded,
+  StorefrontRounded, TimerOutlined,
 } from '@mui/icons-material';
+import { ProductCatalogManager } from '@ecommerce/shared-library/src/ui/ProductCatalogManager';
 import { roleLabel } from '@ecommerce/shared-library';
 import { ErrorState, LoadingState } from '@ecommerce/shared-library/src/ui/StateViews';
-import { posApi, type Me } from './api';
+import { posApi, posCatalogApi, type Me } from './api';
 import { SCREEN_LABELS, screensFor, type ScreenKey } from './posModel';
 import { time } from './format';
 import { OpenShiftCard } from './components/OpenShiftCard';
@@ -17,6 +19,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 
 const ICONS: Record<ScreenKey, React.ReactElement> = {
   sell: <PointOfSaleRounded fontSize="small" />, receipts: <ReceiptLongRounded fontSize="small" />, shift: <TimerOutlined fontSize="small" />,
+  products: <Inventory2Outlined fontSize="small" />,
   reports: <InsightsRounded fontSize="small" />, settings: <SettingsRounded fontSize="small" />,
 };
 
@@ -93,6 +96,10 @@ export function PosApp() {
         : <OpenShiftCard registers={me.registers} canOpen={can('pos:shift')} currency={me.settings.currency} onOpened={() => void load()} />)}
       {screen === 'receipts' && <ReceiptsScreen me={me} can={can} hasOpenShift={!!shift} />}
       {screen === 'shift' && <ShiftScreen me={me} can={can} onShiftChanged={() => void load()} />}
+      {screen === 'products' && (
+        <ProductCatalogManager api={posCatalogApi} canManage={can('pos:manage')} canManageStock={can('pos:manage')} currency={me.settings.currency}
+          title="Products" subtitle="Add products with photos, prices and stock. They show on the till straight away and on the storefront too." />
+      )}
       {screen === 'reports' && <ReportsScreen me={me} can={can} />}
       {screen === 'settings' && <SettingsScreen me={me} onSaved={() => void load()} />}
     </Box>

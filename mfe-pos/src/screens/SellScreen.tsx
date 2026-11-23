@@ -177,9 +177,15 @@ export function SellScreen({ me, can, onSaleCompleted }: Props) {
               <Badge key={item.id} badgeContent={inCart} color="primary" invisible={inCart === 0} sx={{ display: 'block', '& .MuiBadge-badge': { right: 14, top: 14, fontWeight: 800 } }}>
                 <Paper component="button" type="button" variant="outlined" onClick={() => add(item)} aria-label={`Add ${item.name}`}
                   sx={{ width: '100%', textAlign: 'left', p: 1.5, borderRadius: 2.5, cursor: 'pointer', font: 'inherit', color: 'inherit', bgcolor: '#fff',
-                    display: 'flex', flexDirection: 'column', gap: 0.75, minHeight: 124, transition: 'all .12s ease', opacity: out ? 0.6 : 1,
+                    display: 'flex', flexDirection: 'column', gap: 0.75, minHeight: 124, transition: 'all .12s ease', opacity: out ? 0.6 : 1, overflow: 'hidden',
                     '&:hover': { borderColor: 'primary.main', boxShadow: '0 4px 14px rgba(79,70,229,.15)', transform: 'translateY(-1px)' },
                     '&:focus-visible': { outline: '3px solid rgba(79,70,229,.45)', outlineOffset: 2 } }}>
+                  <Box sx={{ mx: -1.5, mt: -1.5, mb: 0.5, height: 96, flexShrink: 0, position: 'relative', overflow: 'hidden', bgcolor: '#F1F5F9',
+                    display: 'grid', placeItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
+                    {item.imageUrl
+                      ? <Box component="img" src={item.imageUrl} alt="" loading="lazy" sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      : <Inventory2Outlined sx={{ color: '#CBD5E1', fontSize: 36 }} />}
+                  </Box>
                   <Typography fontWeight={700} sx={{ lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.name}</Typography>
                   <Typography variant="caption" color="text.secondary" noWrap>{item.sku || `#${item.id}`}{item.category ? ` · ${item.category}` : ''}</Typography>
                   <Box sx={{ flexGrow: 1 }} />

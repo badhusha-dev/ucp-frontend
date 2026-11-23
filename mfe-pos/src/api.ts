@@ -1,5 +1,8 @@
 // The Retail POS API (pos-service, through the gateway). Every call carries the RETAIL_POS session token.
 import { requestToken } from '@ecommerce/shared-library';
+import type {
+  AdminProduct, CatalogAdminApi, CatalogCategory, CatalogImage, SaveResult,
+} from '@ecommerce/shared-library/src/ui/productCatalog';
 import { problemMessage, type CatalogItem, type PaymentMethod } from './posModel';
 
 export const POS_API = '/api/pos';
@@ -14,12 +17,13 @@ export class PosApiError extends Error {
   }
 }
 
-async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function request<T>(path: string, init: RequestInit = {}): Promise<{ body: T; headers: Headers }> {
   const url = POS_API + path;
   const token = requestToken(url);
   const headers = new Headers(init.headers);
   if (token) headers.set('Authorization', `Bearer ${token}`);
-  if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  // A FormData body sets its own multipart content type (with the boundary).
+  if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   let response: Response;
   try {
     response = await fetch(url, { ...init, headers });
@@ -32,7 +36,11 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
     try { body = JSON.parse(text); } catch { /* plain text answer */ }
   }
   if (!response.ok) throw new PosApiError(response.status, body);
-  return (text ? body : undefined) as T;
+  return { body: (text ? body : undefined) as T, headers: response.headers };
+}
+
+async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
+  return (await request<T>(path, init)).body;
 }
 
 const json = (method: string, body?: unknown): RequestInit => ({ method, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -143,6 +151,38 @@ export const posApi = {
   updateRegister: (id: string, patch: { name?: string; location?: string; active?: boolean }) => call<Register>(`/registers/${id}`, json('PUT', patch)),
   audit: () => call<AuditEntry[]>('/audit?limit=100'),
 };
+
+/** Products for store managers (pos:manage): the shared product manager, backed by /api/pos/products. */
+export const posCatalogApi: CatalogAdminApi = {
+  list: async ({ query: text, status, page, size }) => {
+    const data = await call<{ content: AdminProduct[]; totalElements: number }>(`/products${query({ query: text || undefined, status, page, size })}`);
+    return { items: data.content ?? [], total: data.totalElements ?? 0 };
+  },
+  categories: async () => {
+    const response = await fetch('/api/products/categories');
+    return response.ok ? ((await response.json()) as CatalogCategory[]) : [];
+  },
+  images: (id) => call<CatalogImage[]>(`/products/${id}/images`),
+  stock: async (ids) => {
+    const response = await fetch('/api/stock/batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ids) });
+    if (!response.ok) return {};
+    const rows = (await response.json()) as { productId: number; stockQuantity: number }[];
+    return Object.fromEntries(rows.map((row) => [row.productId, row.stockQuantity ?? 0]));
+  },
+  uploadImage: (file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return call<CatalogImage>('/products/images', { method: 'POST', body: form });
+  },
+  create: async (body) => saved(await request<AdminProduct>('/products', json('POST', body))),
+  update: async (id, body) => saved(await request<AdminProduct>(`/products/${id}`, json('PUT', body))),
+  archive: async (id) => { await call<void>(`/products/${id}`, { method: 'DELETE' }); },
+  restore: async (id) => { await call<AdminProduct>(`/products/${id}/restore`, json('POST', {})); },
+};
+
+function saved(response: { body: AdminProduct; headers: Headers }): SaveResult {
+  return { product: response.body, warning: response.headers.get('X-Stock-Warning') };
+}
 
 /** A key that makes a retried "Complete sale" save the sale only once. */
 export function newIdempotencyKey(): string {

@@ -27,7 +27,7 @@ export interface CartLine {
 
 export interface TenderLine { method: PaymentMethod; amount: number; reference?: string }
 
-export type ScreenKey = 'sell' | 'receipts' | 'shift' | 'reports' | 'settings';
+export type ScreenKey = 'sell' | 'receipts' | 'shift' | 'products' | 'reports' | 'settings';
 
 export const MAX_QUANTITY = 9999;
 
@@ -151,13 +151,14 @@ export function screensFor(permissions: readonly string[]): ScreenKey[] {
   if (has('pos:sell')) screens.push('sell');
   screens.push('receipts');
   if (has('pos:shift') || has('pos:manage')) screens.push('shift');
+  if (has('pos:manage')) screens.push('products');
   if (has('pos:report') || has('pos:manage')) screens.push('reports');
   if (has('pos:manage')) screens.push('settings');
   return screens;
 }
 
 export const SCREEN_LABELS: Record<ScreenKey, string> = {
-  sell: 'Sell', receipts: 'Receipts', shift: 'Shift', reports: 'Reports', settings: 'Store settings',
+  sell: 'Sell', receipts: 'Receipts', shift: 'Shift', products: 'Products', reports: 'Reports', settings: 'Store settings',
 };
 
 /** True for input that looks like a scanned barcode or SKU rather than a name to search for. */
