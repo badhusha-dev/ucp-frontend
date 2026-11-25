@@ -95,7 +95,7 @@ export default function TeamPage() {
     {tab === 0 && <>
       <TextField size="small" label="Search by name or email" value={query} sx={{ mb: 2, width: { xs: '100%', sm: 360 } }}
         onChange={(event) => { setQuery(event.target.value); setPage(1); }} />
-      <TableContainer component={Paper} variant="outlined"><Table size="small"><TableHead><TableRow>
+      <TableContainer component={Paper} variant="outlined"><Table size="small" sx={{ '& td': { verticalAlign: 'top', py: 1.25 } }}><TableHead><TableRow>
         <TableCell>Member</TableCell><TableCell>Status</TableCell><TableCell>Applications and roles</TableCell><TableCell align="right">Actions</TableCell>
       </TableRow></TableHead><TableBody>
         {members.map((member) => <TableRow key={member.userId} hover>
@@ -120,7 +120,7 @@ export default function TeamPage() {
               </Stack>
             </Box>)}
           </TableCell>
-          <TableCell align="right"><Stack direction={{ xs: 'column', lg: 'row' }} spacing={0.5} justifyContent="flex-end">
+          <TableCell align="right" sx={{ minWidth: 200 }}><Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap" justifyContent="flex-end" sx={{ '& .MuiButton-root': { whiteSpace: 'nowrap' } }}>
             <Button size="small" disabled={member.membershipStatus !== 'ACTIVE'} onClick={() => setDialog({ kind: 'role', member })}>Add role</Button>
             <Button size="small" disabled={member.membershipStatus !== 'ACTIVE'} onClick={() => setDialog({ kind: 'permission', member })}>Grant permission</Button>
             <Button size="small" color={member.membershipStatus === 'ACTIVE' ? 'warning' : 'success'} onClick={() => {

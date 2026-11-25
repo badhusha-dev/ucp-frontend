@@ -41,6 +41,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { removeFromCart, clearCart, updateQuantity, resolveActiveStorefront, storefrontParams } from '@ecommerce/shared-library';
 import type { RootState, AppDispatch } from '@ecommerce/shared-library';
 import axios from 'axios';
+import { formatMoney } from '@ecommerce/shared-library';
 
 axios.interceptors.request.use((config) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
@@ -136,9 +137,10 @@ export default function OrderPage() {
       <Container maxWidth="xl">
         {/* Header Ribbon */}
         <Stack
-          direction={{ xs: 'column', md: 'row' }}
+          direction={{ xs: 'column', lg: 'row' }}
           justifyContent="space-between"
-          alignItems={{ xs: 'flex-start', md: 'center' }}
+          gap={2}
+          alignItems={{ xs: 'flex-start', lg: 'center' }}
           spacing={2}
           sx={{ mb: 4 }}
         >
@@ -165,8 +167,8 @@ export default function OrderPage() {
               Review items, select express fulfillment, and complete your purchase securely.
             </Typography>
           </Box>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Button href="/orders/history" variant="outlined" startIcon={<HistoryRounded />} sx={{ fontWeight: 700 }}>
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Button href="/orders/history" variant="outlined" startIcon={<HistoryRounded />} sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
               Order history & returns
             </Button>
             <Chip
@@ -285,7 +287,7 @@ export default function OrderPage() {
                               {item.name}
                             </Typography>
                             <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 600 }}>
-                              ${item.price.toFixed(2)} each
+                              {formatMoney(item.price)} each
                             </Typography>
                           </Box>
                         </Stack>
@@ -334,7 +336,7 @@ export default function OrderPage() {
 
                           {/* Item Subtotal */}
                           <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A', minWidth: 80, textAlign: 'right' }}>
-                            ${(item.price * item.quantity).toFixed(2)}
+                            {formatMoney((item.price * item.quantity))}
                           </Typography>
 
                           {/* Delete */}
@@ -646,7 +648,7 @@ export default function OrderPage() {
 
                 {discountApplied && (
                   <Chip
-                    label={`Promo Code '${promoCode || 'UNIVERSAL20'}' Applied (-$${discountAmount.toFixed(2)})`}
+                    label={`Promo Code '${promoCode || 'UNIVERSAL20'}' Applied (-${formatMoney(discountAmount)})`}
                     color="success"
                     size="small"
                     sx={{ mb: 2.5, width: '100%', fontWeight: 700 }}
@@ -659,7 +661,7 @@ export default function OrderPage() {
                       Items Subtotal
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: '#0F172A' }}>
-                      ${subtotal.toFixed(2)}
+                      {formatMoney(subtotal)}
                     </Typography>
                   </Stack>
 
@@ -669,7 +671,7 @@ export default function OrderPage() {
                         Promo Savings
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 700, color: '#059669' }}>
-                        -${discountAmount.toFixed(2)}
+                        -{formatMoney(discountAmount)}
                       </Typography>
                     </Stack>
                   )}
@@ -682,7 +684,7 @@ export default function OrderPage() {
                       variant="body2"
                       sx={{ fontWeight: 700, color: shippingFee === 0 ? '#10B981' : '#0F172A' }}
                     >
-                      {shippingFee === 0 ? 'FREE' : `$${shippingFee.toFixed(2)}`}
+                      {shippingFee === 0 ? 'FREE' : `${formatMoney(shippingFee)}`}
                     </Typography>
                   </Stack>
 
@@ -691,7 +693,7 @@ export default function OrderPage() {
                       Estimated Tax (8.25%)
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: '#0F172A' }}>
-                      ${tax.toFixed(2)}
+                      {formatMoney(tax)}
                     </Typography>
                   </Stack>
 
@@ -702,7 +704,7 @@ export default function OrderPage() {
                       Total Amount
                     </Typography>
                     <Typography variant="h4" sx={{ fontWeight: 800, color: '#4F46E5' }}>
-                      ${grandTotal.toFixed(2)}
+                      {formatMoney(grandTotal)}
                     </Typography>
                   </Stack>
                 </Stack>
@@ -804,7 +806,7 @@ export default function OrderPage() {
                       TOTAL PAID
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A' }}>
-                      ${(successOrder.totalAmount || grandTotal).toFixed(2)}
+                      {formatMoney((successOrder.totalAmount || grandTotal))}
                     </Typography>
                   </Grid>
                   <Grid item xs={12}>

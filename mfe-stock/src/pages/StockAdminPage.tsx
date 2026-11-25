@@ -40,6 +40,7 @@ import type { StockItem, StockAnalyticsSummary } from '../types/inventory';
 import { stockApi } from '../api/stockApi';
 import { StockAdjustmentModal } from '../components/StockAdjustmentModal';
 import { CsvImportModal } from '../components/CsvImportModal';
+import { formatMoney } from '@ecommerce/shared-library';
 
 export const StockAdminPage: React.FC = () => {
   const [items, setItems] = useState<StockItem[]>([]);
@@ -225,7 +226,7 @@ export const StockAdminPage: React.FC = () => {
                   <AttachMoneyRounded sx={{ color: '#0EA5E9', fontSize: 20 }} />
                 </Box>
                 <Typography variant="h5" sx={{ fontWeight: 900, color: '#0F172A' }}>
-                  ${Number(summary.stockValuation ?? summary.totalValuation ?? items.reduce((acc, i) => acc + ((i.stockQuantity || 0) * (i.costPrice || 0)), 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {formatMoney(Number(summary.stockValuation ?? summary.totalValuation ?? items.reduce((acc, i) => acc + ((i.stockQuantity || 0) * (i.costPrice || 0)), 0)))}
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#94A3B8' }}>
                   Cost Basis Inventory
@@ -264,7 +265,7 @@ export const StockAdminPage: React.FC = () => {
               placeholder="Search by SKU, Product ID, or Warehouse Bin..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ width: { xs: '100%', sm: 380 } }}
+              sx={{ width: { xs: '100%', sm: 440 }, maxWidth: '100%' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -293,8 +294,8 @@ export const StockAdminPage: React.FC = () => {
       </Card>
 
       {/* Table */}
-      <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)' }}>
-        <Table>
+      <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)', overflowX: 'auto' }}>
+        <Table sx={{ minWidth: 980, '& .MuiTableCell-head': { whiteSpace: 'nowrap' } }}>
           <TableHead sx={{ bgcolor: '#F8FAFC' }}>
             <TableRow>
               <TableCell sx={{ fontWeight: 700, color: '#475569' }}>PID</TableCell>
@@ -338,7 +339,7 @@ export const StockAdminPage: React.FC = () => {
                 return (
                   <TableRow key={item.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                     <TableCell sx={{ fontWeight: 600, color: '#64748B' }}>#{item.productId}</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#0F172A' }}>{item.sku}</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap' }}>{item.sku}</TableCell>
                     <TableCell>
                       <Chip
                         label={item.warehouseLocation || 'UNASSIGNED'}
@@ -355,7 +356,7 @@ export const StockAdminPage: React.FC = () => {
                     </TableCell>
                     <TableCell align="right" sx={{ color: '#64748B' }}>{item.reorderThreshold}</TableCell>
                     <TableCell align="right" sx={{ color: '#475569', fontWeight: 600 }}>
-                      ${Number(item.costPrice).toFixed(2)}
+                      {formatMoney(Number(item.costPrice))}
                     </TableCell>
                     <TableCell align="center">
                       {isOutOfStock ? (

@@ -48,6 +48,7 @@ import {
   CloseRounded,
 } from '@mui/icons-material';
 import axios from 'axios';
+import { formatMoney } from '@ecommerce/shared-library';
 
 axios.interceptors.request.use((config) => {
   const token = requestToken((config.baseURL || '') + (config.url || ''));
@@ -344,23 +345,23 @@ export default function AdminAnalyticsDashboard() {
       const lower = q.toLowerCase();
 
       if (lower.includes('gmv') || lower.includes('net sales') || lower.includes('difference')) {
-        reply = `**Canonical Metric Definition:**\n\n- **Gross Merchandise Value (GMV):** $${overview?.grossMerchandiseValue.current?.toFixed(2) || '0.00'}. Total top-line monetary value of merchandise transactions placed before coupons and refunds.\n- **Net Sales:** $${overview?.netSales.current?.toFixed(2) || '0.00'}. Realized sales after coupon discounts and verified refunds.\n\n*Cancelled orders ($${overview?.cancelledOrders.current || 0}) are strictly excluded from both figures.*`;
+        reply = `**Canonical Metric Definition:**\n\n- **Gross Merchandise Value (GMV):** ${formatMoney(overview?.grossMerchandiseValue.current) || '0.00'}. Total top-line monetary value of merchandise transactions placed before coupons and refunds.\n- **Net Sales:** ${formatMoney(overview?.netSales.current) || '0.00'}. Realized sales after coupon discounts and verified refunds.\n\n*Cancelled orders ($${overview?.cancelledOrders.current || 0}) are strictly excluded from both figures.*`;
       } else if (lower.includes('compare') || lower.includes('trend') || lower.includes('last month') || lower.includes('period')) {
-        reply = `**Period Comparison Summary (${overview?.timeRange || 'Selected Period'} vs Prior Equivalent):**\n\n- **Net Sales:** $${overview?.netSales.current?.toFixed(2) || '0.00'} (${overview?.netSales.deltaPercent && overview.netSales.deltaPercent >= 0 ? '+' : ''}${overview?.netSales.deltaPercent || 0}% ${overview?.netSales.trend === 'UP' ? '📈' : '📉'})\n- **Orders Placed:** ${overview?.ordersPlaced.current || 0} (${overview?.ordersPlaced.deltaPercent && overview.ordersPlaced.deltaPercent >= 0 ? '+' : ''}${overview?.ordersPlaced.deltaPercent || 0}%)\n- **Average Order Value (AOV):** $${overview?.averageOrderValue.current?.toFixed(2) || '0.00'}\n\n*Timezone applied: UTC.*`;
+        reply = `**Period Comparison Summary (${overview?.timeRange || 'Selected Period'} vs Prior Equivalent):**\n\n- **Net Sales:** ${formatMoney(overview?.netSales.current) || '0.00'} (${overview?.netSales.deltaPercent && overview.netSales.deltaPercent >= 0 ? '+' : ''}${overview?.netSales.deltaPercent || 0}% ${overview?.netSales.trend === 'UP' ? '📈' : '📉'})\n- **Orders Placed:** ${overview?.ordersPlaced.current || 0} (${overview?.ordersPlaced.deltaPercent && overview.ordersPlaced.deltaPercent >= 0 ? '+' : ''}${overview?.ordersPlaced.deltaPercent || 0}%)\n- **Average Order Value (AOV):** ${formatMoney(overview?.averageOrderValue.current) || '0.00'}\n\n*Timezone applied: UTC.*`;
       } else if (lower.includes('stock') || lower.includes('inventory') || lower.includes('threshold') || lower.includes('reorder')) {
         const lowCount = inventory?.lowStockCount || overview?.lowStockCount || 0;
         const outCount = inventory?.outOfStockCount || 0;
-        const valuation = inventory?.stockValuation ? `$${inventory.stockValuation.toFixed(2)}` : 'N/A';
+        const valuation = inventory?.stockValuation ? `${formatMoney(inventory.stockValuation)}` : 'N/A';
         const items = inventory?.lowStockItems?.map((i) => `• **${i.name}**: ${i.stockQuantity} units left (Threshold: ${i.reorderThreshold})`).join('\n') || 'None';
 
         reply = `**Inventory Health Intelligence:**\n\n- **Current Low-Stock Products:** ${lowCount}\n- **Out-of-Stock Items:** ${outCount}\n- **Warehouse Asset Valuation:** ${valuation}\n\n**Actionable Items Below Threshold:**\n${items}`;
       } else if (lower.includes('cancel') || lower.includes('refund')) {
-        reply = `**Risk & Fulfillment Telemetry:**\n\n- **Cancelled Orders:** ${overview?.cancelledOrders.current || 0} (${overview?.cancellationRate.current?.toFixed(1) || 0}% cancellation rate)\n- **Refunds Processed:** $${overview?.refundAmount.current?.toFixed(2) || '0.00'} (${overview?.refundRate.current?.toFixed(1) || 0}% of GMV)\n- **Delayed Fulfillment (>24h):** ${alerts?.delayedFulfillmentCount || 0} orders\n- **Inactive Carts (>2h):** ${alerts?.abandonedCartsCount || 0} carts`;
+        reply = `**Risk & Fulfillment Telemetry:**\n\n- **Cancelled Orders:** ${overview?.cancelledOrders.current || 0} (${overview?.cancellationRate.current?.toFixed(1) || 0}% cancellation rate)\n- **Refunds Processed:** ${formatMoney(overview?.refundAmount.current) || '0.00'} (${overview?.refundRate.current?.toFixed(1) || 0}% of GMV)\n- **Delayed Fulfillment (>24h):** ${alerts?.delayedFulfillmentCount || 0} orders\n- **Inactive Carts (>2h):** ${alerts?.abandonedCartsCount || 0} carts`;
       } else if (lower.includes('best') || lower.includes('top product') || lower.includes('slow')) {
-        const topList = products?.topProductsByRevenue?.slice(0, 3).map((p, idx) => `${idx + 1}. **${p.productName}** — $${p.totalRevenue?.toFixed(2)} (${p.unitsSold} units)`).join('\n') || 'No orders yet';
+        const topList = products?.topProductsByRevenue?.slice(0, 3).map((p, idx) => `${idx + 1}. **${p.productName}** — ${formatMoney(p.totalRevenue)} (${p.unitsSold} units)`).join('\n') || 'No orders yet';
         reply = `**Catalog Performance Intelligence:**\n\n**Top Selling Products by Revenue:**\n${topList}\n\n*Slow-moving products count: ${products?.slowMovingProducts?.length || 0} items identified with order velocity ≤ 3 units.*`;
       } else {
-        reply = `I parsed your query based on current database ledger records for **${overview?.timeRange || 'the active window'}**:\n\n• **GMV:** $${overview?.grossMerchandiseValue.current?.toFixed(2) || '0.00'}\n• **Net Sales:** $${overview?.netSales.current?.toFixed(2) || '0.00'}\n• **Orders Placed:** ${overview?.ordersPlaced.current || 0}\n• **Units Sold:** ${overview?.unitsSold.current || 0}\n• **Repeat Purchase Rate:** ${customers?.repeatPurchaseRate || 0}%\n\nYou can also click the tabs above (Sales, Products, Inventory, Customers) for graphical drill-downs!`;
+        reply = `I parsed your query based on current database ledger records for **${overview?.timeRange || 'the active window'}**:\n\n• **GMV:** ${formatMoney(overview?.grossMerchandiseValue.current) || '0.00'}\n• **Net Sales:** ${formatMoney(overview?.netSales.current) || '0.00'}\n• **Orders Placed:** ${overview?.ordersPlaced.current || 0}\n• **Units Sold:** ${overview?.unitsSold.current || 0}\n• **Repeat Purchase Rate:** ${customers?.repeatPurchaseRate || 0}%\n\nYou can also click the tabs above (Sales, Products, Inventory, Customers) for graphical drill-downs!`;
       }
 
       setAiMessages((prev) => [...prev, { sender: 'assistant', text: reply }]);
@@ -463,7 +464,7 @@ export default function AdminAnalyticsDashboard() {
           {points.map((p, idx) => (
             <Tooltip
               key={idx}
-              title={`${p.date} | Net Sales: $${p.netSales.toFixed(2)} | Orders: ${p.orderCount} | Prior: $${p.comparisonSales.toFixed(2)}`}
+              title={`${p.date} | Net Sales: ${formatMoney(p.netSales)} | Orders: ${p.orderCount} | Prior: ${formatMoney(p.comparisonSales)}`}
               arrow
             >
               <circle
@@ -518,7 +519,7 @@ export default function AdminAnalyticsDashboard() {
     <Container maxWidth="xl" sx={{ py: 3 }}>
       {/* Header Banner */}
       <Box sx={{ mb: 3 }}>
-        <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} spacing={2}>
+        <Stack direction={{ xs: 'column', lg: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', lg: 'center' }} gap={2}>
           <Box>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em' }}>
@@ -532,7 +533,7 @@ export default function AdminAnalyticsDashboard() {
           </Box>
 
           {/* Quick Actions */}
-          <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+          <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
             <Button
               variant="outlined"
               color="primary"
@@ -674,7 +675,7 @@ export default function AdminAnalyticsDashboard() {
                     </Tooltip>
                   </Stack>
                   <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F172A', my: 1 }}>
-                    ${overview.grossMerchandiseValue.current.toFixed(2)}
+                    {formatMoney(overview.grossMerchandiseValue.current)}
                   </Typography>
                   <Stack direction="row" spacing={1} alignItems="center">
                     {renderTrendBadge(overview.grossMerchandiseValue.deltaPercent, overview.grossMerchandiseValue.trend)}
@@ -697,7 +698,7 @@ export default function AdminAnalyticsDashboard() {
                     </Tooltip>
                   </Stack>
                   <Typography variant="h4" sx={{ fontWeight: 900, color: '#4F46E5', my: 1 }}>
-                    ${overview.netSales.current.toFixed(2)}
+                    {formatMoney(overview.netSales.current)}
                   </Typography>
                   <Stack direction="row" spacing={1} alignItems="center">
                     {renderTrendBadge(overview.netSales.deltaPercent, overview.netSales.trend)}
@@ -739,7 +740,7 @@ export default function AdminAnalyticsDashboard() {
                     <AttachMoneyRounded sx={{ fontSize: 18, color: '#10B981' }} />
                   </Stack>
                   <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F172A', my: 1 }}>
-                    ${overview.averageOrderValue.current.toFixed(2)}
+                    {formatMoney(overview.averageOrderValue.current)}
                   </Typography>
                   <Stack direction="row" spacing={1} alignItems="center">
                     {renderTrendBadge(overview.averageOrderValue.deltaPercent, overview.averageOrderValue.trend)}
@@ -793,7 +794,7 @@ export default function AdminAnalyticsDashboard() {
                     Refunds Processed
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F172A', my: 1 }}>
-                    ${overview.refundAmount.current.toFixed(2)}
+                    {formatMoney(overview.refundAmount.current)}
                   </Typography>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700 }}>
@@ -935,9 +936,9 @@ export default function AdminAnalyticsDashboard() {
                         <TableCell sx={{ fontWeight: 600 }}>{p.productName}</TableCell>
                         <TableCell align="right">{p.unitsSold}</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 700, color: '#4F46E5' }}>
-                          ${p.totalRevenue.toFixed(2)}
+                          {formatMoney(p.totalRevenue)}
                         </TableCell>
-                        <TableCell align="right">${p.averageSellingPrice.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatMoney(p.averageSellingPrice)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -958,7 +959,7 @@ export default function AdminAnalyticsDashboard() {
                     <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
                       <Typography variant="body2" sx={{ fontWeight: 700 }}>{c.category}</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 800, color: '#4F46E5' }}>
-                        ${c.totalRevenue.toFixed(2)} ({c.revenuePercentage}%)
+                        {formatMoney(c.totalRevenue)} ({c.revenuePercentage}%)
                       </Typography>
                     </Stack>
                     <LinearProgress
@@ -1131,9 +1132,9 @@ export default function AdminAnalyticsDashboard() {
                         <TableCell sx={{ fontWeight: 700 }}>User #{c.userId}</TableCell>
                         <TableCell align="right">{c.orderCount}</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 800, color: '#10B981' }}>
-                          ${c.totalSpent.toFixed(2)}
+                          {formatMoney(c.totalSpent)}
                         </TableCell>
-                        <TableCell align="right">${c.averageOrderValue.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatMoney(c.averageOrderValue)}</TableCell>
                         <TableCell>{c.firstOrderDate ? c.firstOrderDate.substring(0, 10) : 'N/A'}</TableCell>
                       </TableRow>
                     ))}
@@ -1216,7 +1217,7 @@ export default function AdminAnalyticsDashboard() {
                         }}
                       />
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800 }}>${o.totalAmount.toFixed(2)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800 }}>{formatMoney(o.totalAmount)}</TableCell>
                     <TableCell align="right">${o.discountAmount ? o.discountAmount.toFixed(2) : '0.00'}</TableCell>
                     <TableCell>{o.carrier} ({o.trackingNumber || 'Unassigned'})</TableCell>
                     <TableCell align="center">
@@ -1305,7 +1306,7 @@ export default function AdminAnalyticsDashboard() {
               <Box>
                 <Typography variant="subtitle2" sx={{ color: '#64748B' }}>Order Status &amp; Pricing</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                  ${selectedOrder.totalAmount.toFixed(2)} &bull; Status: {selectedOrder.status}
+                  {formatMoney(selectedOrder.totalAmount)} &bull; Status: {selectedOrder.status}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#64748B' }}>
                   Carrier: {selectedOrder.carrier} &bull; Tracking: {selectedOrder.trackingNumber || 'Pending'}
@@ -1320,7 +1321,7 @@ export default function AdminAnalyticsDashboard() {
                   selectedOrder.items.map((i, idx) => (
                     <Stack key={idx} direction="row" justifyContent="space-between">
                       <Typography variant="body2">{i.productName} &times; {i.quantity}</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>${(i.price * i.quantity).toFixed(2)}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>{formatMoney((i.price * i.quantity))}</Typography>
                     </Stack>
                   ))
                 ) : (
