@@ -28,6 +28,8 @@ export const sf = {
   list: () => d(client.get<Row[]>('')),
   create: (body: Row) => d(client.post<Row>('', body)),
   rename: (id: number, name: string) => d(client.put<Row>(`/${id}`, { name })),
+  localization: (id: number, body: { defaultLocale: string; supportedLocales: string[]; defaultCurrency: string; supportedCurrencies: string[]; exchangeRates: Record<string, number> }) =>
+    d(client.put<Row>(`/${id}/localization`, body)),
   dashboard: (id: number) => d(client.get<Row>(`/${id}/dashboard`)),
   audit: (id: number) => d(client.get<Row[]>(`/${id}/audit`)),
   documents: (id: number) => d(client.get<Row[]>(`/${id}/documents`)),

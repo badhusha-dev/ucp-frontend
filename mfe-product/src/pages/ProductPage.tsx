@@ -63,7 +63,8 @@ import {
   RateReviewRounded,
   PsychologyRounded,
 } from '@mui/icons-material';
-import { addToCart, resolveActiveStorefront, storefrontParams } from '@ecommerce/shared-library';
+import { addToCart, resolveActiveStorefront, storefrontParams, localizationFrom, resolvePreferences, readShopperPreferences, storeShopperPreferences, formatShopperPrice, languageName, isRightToLeft } from '@ecommerce/shared-library';
+import type { ShopperPreferences, StorefrontLocalization } from '@ecommerce/shared-library';
 import type { ActiveStorefront, AppDispatch, RootState } from '@ecommerce/shared-library';
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
@@ -135,6 +136,26 @@ export default function ProductPage() {
   const [categories, setCategories] = useState<string[]>(['All', 'Audio', 'Computer Peripherals', 'Gaming']);
   const [loading, setLoading] = useState(true);
   const [storefront, setStorefront] = useState<ActiveStorefront | null>(null);
+  // Language and currency: offered by the storefront, chosen by the shopper, remembered in this browser.
+  const [localization, setLocalization] = useState<StorefrontLocalization>(() => localizationFrom(null));
+  const [prefs, setPrefs] = useState<ShopperPreferences>({ locale: 'en', currency: 'USD' });
+  const money = (amount: unknown) => formatShopperPrice(amount, localization, prefs);
+  const choose = (next: ShopperPreferences) => { setPrefs(next); try { storeShopperPreferences(next, window.localStorage); } catch { /* private mode */ } };
+  useEffect(() => {
+    if (!storefront) return;
+    axios.get(`/api/products/public/storefront/${storefront.slug}`).then((res) => {
+      const loc = localizationFrom(res.data);
+      setLocalization(loc);
+      let saved = null;
+      try { saved = readShopperPreferences(window.localStorage); } catch { /* private mode */ }
+      setPrefs(resolvePreferences(loc, saved, navigator.language));
+    }).catch(() => { /* the storefront's defaults stay */ });
+  }, [storefront?.slug]);
+  useEffect(() => {
+    document.documentElement.lang = prefs.locale;
+    document.documentElement.dir = isRightToLeft(prefs.locale) ? 'rtl' : 'ltr';
+    return () => { document.documentElement.dir = 'ltr'; };
+  }, [prefs.locale]);
   const [catalogError, setCatalogError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -675,6 +696,28 @@ export default function ProductPage() {
                 </Select>
               </FormControl>
             </Grid>
+            {(localization.locales.length > 1 || localization.currencies.length > 1) && (
+              <Grid item xs={12}>
+                <Stack direction="row" spacing={2} justifyContent="flex-end">
+                  {localization.locales.length > 1 && (
+                    <FormControl size="small" sx={{ minWidth: 150 }}>
+                      <InputLabel id="language-select-label">Language</InputLabel>
+                      <Select labelId="language-select-label" label="Language" value={prefs.locale} onChange={(e) => choose({ ...prefs, locale: String(e.target.value) })}>
+                        {localization.locales.map((l) => <MenuItem key={l} value={l}>{languageName(l)}</MenuItem>)}
+                      </Select>
+                    </FormControl>
+                  )}
+                  {localization.currencies.length > 1 && (
+                    <FormControl size="small" sx={{ minWidth: 130 }}>
+                      <InputLabel id="currency-select-label">Currency</InputLabel>
+                      <Select labelId="currency-select-label" label="Currency" value={prefs.currency} onChange={(e) => choose({ ...prefs, currency: String(e.target.value) })}>
+                        {localization.currencies.filter((c) => c === localization.defaultCurrency || localization.exchangeRates[c]).map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                      </Select>
+                    </FormControl>
+                  )}
+                </Stack>
+              </Grid>
+            )}
           </Grid>
         </Paper>
 
@@ -882,7 +925,7 @@ export default function ProductPage() {
                         {/* Pricing */}
                         <Stack direction="row" spacing={1} alignItems="baseline" sx={{ mb: 1 }}>
                           <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A' }}>
-                            ${product.price.toFixed(2)}
+                            {money(product.price)}
                           </Typography>
                           {product.originalPrice && (
                             <Typography
@@ -893,7 +936,7 @@ export default function ProductPage() {
                                 fontWeight: 500,
                               }}
                             >
-                              ${product.originalPrice.toFixed(2)}
+                              {money(product.originalPrice)}
                             </Typography>
                           )}
                         </Stack>
@@ -997,7 +1040,7 @@ export default function ProductPage() {
                       {item.name}
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#4F46E5', fontWeight: 800 }}>
-                      ${item.price.toFixed(2)}
+                      {money(item.price)}
                     </Typography>
                   </Paper>
                 </Grid>
@@ -1097,7 +1140,7 @@ export default function ProductPage() {
                     {compareProductsList.map((p) => (
                       <TableCell key={`price-${p.id}`} align="center">
                         <Typography variant="h6" sx={{ fontWeight: 800, color: '#4F46E5' }}>
-                          ${p.price.toFixed(2)}
+                          {money(p.price)}
                         </Typography>
                       </TableCell>
                     ))}
@@ -1214,7 +1257,7 @@ export default function ProductPage() {
                     </Stack>
 
                     <Typography variant="h4" sx={{ fontWeight: 800, color: '#4F46E5', mb: 2 }}>
-                      ${(selectedVariant ? selectedVariant.finalPrice : quickViewProduct.price).toFixed(2)}
+                      {money(selectedVariant ? selectedVariant.finalPrice : quickViewProduct.price)}
                     </Typography>
 
                     {/* Multi-attribute Variants Selector */}
@@ -1379,9 +1422,9 @@ export default function ProductPage() {
                   '&:hover': { bgcolor: '#4338CA' },
                 }}
               >
-                Add {quickViewQty} to Cart • ${(
+                Add {quickViewQty} to Cart • {money(
                   (selectedVariant ? selectedVariant.finalPrice : quickViewProduct.price) * quickViewQty
-                ).toFixed(2)}
+                )}
               </Button>
             </DialogActions>
           </>

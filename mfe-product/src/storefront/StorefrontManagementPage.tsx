@@ -61,7 +61,7 @@ export default function StorefrontManagementPage() {
       case 'content': return <MediaLibrary key={storefront!.id} {...props} />;
       case 'seo': return <SeoScreen key={storefront!.id} {...props} />;
       case 'domains': return <DomainsScreen key={storefront!.id} {...props} />;
-      case 'localization': return <LocalizationScreen {...props} />;
+      case 'localization': return <LocalizationScreen key={`l${storefront!.id}`} {...props} />;
       case 'publishing': return <PublishingScreen key={`p${storefront!.id}`} {...props} mode="publishing" />;
       case 'history': return <PublishingScreen key={`v${storefront!.id}`} {...props} mode="history" />;
       case 'settings': return <SettingsScreen key={storefront!.id} {...props} />;

@@ -391,14 +391,69 @@ export function SettingsScreen({ storefront, can, onChanged }: ScreenProps) {
   );
 }
 
-export function LocalizationScreen({ storefront }: ScreenProps) {
+const LANGUAGE_CHOICES = ['en', 'en-US', 'en-GB', 'fr', 'de', 'es', 'it', 'pt', 'nl', 'ar', 'hi', 'ta', 'te', 'ml', 'zh', 'ja', 'ko', 'ru', 'tr'];
+const CURRENCY_CHOICES = ['USD', 'EUR', 'GBP', 'INR', 'AED', 'SAR', 'JPY', 'CNY', 'AUD', 'CAD', 'SGD', 'CHF'];
+const nameOf = (code: string) => { try { return new Intl.DisplayNames([code], { type: 'language' }).of(code) ?? code; } catch { return code; } };
+
+export function LocalizationScreen({ storefront, can, onChanged }: ScreenProps) {
+  const split = (v: unknown, fallback: string) => String(v ?? fallback).split(',').filter(Boolean);
+  const parseRates = (): Record<string, string> => { try { const r = JSON.parse(String(storefront.exchangeRates ?? '{}')); return Object.fromEntries(Object.entries(r).map(([k, v]) => [k, String(v)])); } catch { return {}; } };
+  const [form, setForm] = useState({
+    defaultLocale: String(storefront.defaultLocale ?? 'en'),
+    locales: split(storefront.supportedLocales, 'en'),
+    defaultCurrency: String(storefront.defaultCurrency ?? 'USD'),
+    currencies: split(storefront.supportedCurrencies, 'USD'),
+    rates: parseRates(),
+  });
+  const { run, view } = useNotice();
+  const editable = can('storefront:manage');
+  const locales = Array.from(new Set([form.defaultLocale, ...form.locales]));
+  const currencies = Array.from(new Set([form.defaultCurrency, ...form.currencies]));
+  const missing = currencies.filter((c) => c !== form.defaultCurrency && !(Number(form.rates[c]) > 0));
+  const save = () => run(() => sf.localization(storefront.id, {
+    defaultLocale: form.defaultLocale, supportedLocales: locales, defaultCurrency: form.defaultCurrency, supportedCurrencies: currencies,
+    exchangeRates: Object.fromEntries(currencies.filter((c) => c !== form.defaultCurrency).map((c) => [c, Number(form.rates[c])])),
+  }), 'Languages and currencies saved. Shoppers can choose them on the storefront now.', onChanged);
   return (
     <Stack spacing={2}>
+      {view}
       <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="subtitle2">Configured languages</Typography>
-        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>{String(storefront.supportedLocales).split(',').map((l) => <Chip key={l} label={l === storefront.defaultLocale ? `${l} (default)` : l} />)}</Stack>
+        <Typography variant="subtitle2" gutterBottom>Languages</Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <TextField select size="small" label="Default language" sx={{ minWidth: 200 }} disabled={!editable} value={form.defaultLocale}
+            onChange={(e) => setForm({ ...form, defaultLocale: e.target.value })}>
+            {LANGUAGE_CHOICES.map((l) => <MenuItem key={l} value={l}>{nameOf(l)} ({l})</MenuItem>)}
+          </TextField>
+          <TextField select size="small" label="Also offer" sx={{ minWidth: 280 }} disabled={!editable} SelectProps={{ multiple: true, renderValue: (v) => (v as string[]).join(', ') }}
+            value={form.locales.filter((l) => l !== form.defaultLocale)} onChange={(e) => setForm({ ...form, locales: e.target.value as unknown as string[] })}>
+            {LANGUAGE_CHOICES.filter((l) => l !== form.defaultLocale).map((l) => <MenuItem key={l} value={l}>{nameOf(l)} ({l})</MenuItem>)}
+          </TextField>
+        </Stack>
+        <Typography variant="caption" color="text.secondary">Shoppers pick a language on the storefront; prices and dates follow it, and Arabic is shown right to left. Page text is written once, in your own words, so translate headings and banners in the Homepage Builder if you need them in each language.</Typography>
       </Paper>
-      <Alert severity="warning">Per-language page content is not available yet. The storefront records its supported locales, but pages, navigation and banners have a single content version. Changing locales after creation is not yet supported.</Alert>
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Typography variant="subtitle2" gutterBottom>Currencies</Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <TextField select size="small" label="Prices are kept in" sx={{ minWidth: 200 }} disabled={!editable} value={form.defaultCurrency}
+            onChange={(e) => setForm({ ...form, defaultCurrency: e.target.value })}>
+            {CURRENCY_CHOICES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+          </TextField>
+          <TextField select size="small" label="Shoppers can also pay in" sx={{ minWidth: 280 }} disabled={!editable} SelectProps={{ multiple: true, renderValue: (v) => (v as string[]).join(', ') }}
+            value={form.currencies.filter((c) => c !== form.defaultCurrency)} onChange={(e) => setForm({ ...form, currencies: e.target.value as unknown as string[] })}>
+            {CURRENCY_CHOICES.filter((c) => c !== form.defaultCurrency).map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+          </TextField>
+        </Stack>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 2 }}>
+          {currencies.filter((c) => c !== form.defaultCurrency).map((c) => (
+            <TextField key={c} size="small" type="number" disabled={!editable} label={`1 ${form.defaultCurrency} = ? ${c}`} sx={{ width: 170 }}
+              value={form.rates[c] ?? ''} error={!(Number(form.rates[c]) > 0)} onChange={(e) => setForm({ ...form, rates: { ...form.rates, [c]: e.target.value } })} />
+          ))}
+        </Stack>
+        <Typography variant="caption" color="text.secondary">Prices stay in {form.defaultCurrency}; the storefront converts them with these rates for display. Update the rates when they move.</Typography>
+      </Paper>
+      {missing.length > 0 && <Alert severity="warning">Enter an exchange rate for {missing.join(', ')}.</Alert>}
+      {editable && <Box><Button variant="contained" disabled={missing.length > 0} onClick={() => { void save(); }}>Save languages and currencies</Button></Box>}
+      <Stack direction="row" spacing={1}>{locales.map((l) => <Chip key={l} label={l === form.defaultLocale ? `${nameOf(l)} (default)` : nameOf(l)} />)}{currencies.map((c) => <Chip key={c} color="primary" variant="outlined" label={c === form.defaultCurrency ? `${c} (default)` : c} />)}</Stack>
     </Stack>
   );
 }
