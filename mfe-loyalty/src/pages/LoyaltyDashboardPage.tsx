@@ -6,6 +6,7 @@ import {
   Grid, Skeleton, Alert, Divider, Tooltip
 } from '@mui/material';
 import { loyaltyApi, LoyaltyAccount, LoyaltyTransaction } from '../api/loyaltyApi';
+import { formatMoney } from '@ecommerce/shared-library';
 
 const TIER_COLORS: Record<string, string> = {
   BRONZE: '#CD7F32',
@@ -137,7 +138,7 @@ export default function LoyaltyDashboardPage({ userId: propUserId }: Props) {
                 <CardContent>
                   <Typography sx={{ color: '#94a3b8', fontSize: 13, mb: 1 }}>Cash Value</Typography>
                   <Typography variant="h3" sx={{ color: '#10b981', fontWeight: 700 }}>
-                    ${Number(account.cashValue).toFixed(2)}
+                    {formatMoney(Number(account.cashValue))}
                   </Typography>
                   <Typography sx={{ color: '#6b7280', fontSize: 13 }}>redeemable value</Typography>
                 </CardContent>

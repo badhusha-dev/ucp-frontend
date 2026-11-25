@@ -10,6 +10,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { loyaltyApi, AdminStats, LoyaltyAccount, LoyaltyTierRule } from '../api/loyaltyApi';
+import { formatMoney } from '@ecommerce/shared-library';
 
 const TIER_COLORS: Record<string, string> = {
   BRONZE: '#CD7F32', SILVER: '#C0C0C0', GOLD: '#FFD700', PLATINUM: '#E5E4E2'
@@ -106,7 +107,7 @@ export default function LoyaltyAdminPage() {
             <StatCard
               title="Points Outstanding"
               value={stats.totalPointsOutstanding.toLocaleString()}
-              sub={`$${Number(stats.estimatedLiabilityUsd).toFixed(2)} liability`}
+              sub={`${formatMoney(Number(stats.estimatedLiabilityUsd))} liability`}
               icon={<MonetizationOnIcon />}
               color="#F59E0B"
             />
@@ -122,7 +123,7 @@ export default function LoyaltyAdminPage() {
           <Grid item xs={12} sm={6} md={3}>
             <StatCard
               title="Point Value"
-              value={`$${Number(stats.pointValueUsd).toFixed(2)}`}
+              value={`${formatMoney(Number(stats.pointValueUsd))}`}
               sub="per point"
               icon={<EmojiEventsIcon />}
               color="#10b981"
@@ -195,7 +196,7 @@ export default function LoyaltyAdminPage() {
                   {acc.lifetimePoints.toLocaleString()}
                 </TableCell>
                 <TableCell align="right" sx={{ color: '#10b981', borderColor: '#1E293B' }}>
-                  ${Number(acc.cashValue).toFixed(2)}
+                  {formatMoney(Number(acc.cashValue))}
                 </TableCell>
                 <TableCell align="center" sx={{ borderColor: '#1E293B' }}>
                   <Button

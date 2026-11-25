@@ -37,10 +37,10 @@ describe('canViewOperations', () => {
 });
 
 describe('visibleOperations', () => {
-  it('gives the Super Admin all 18 items in 6 groups, in menu order', () => {
+  it('gives the Super Admin all 19 items in 6 groups, in menu order', () => {
     const groups = visibleOperations(() => true);
     assert.deepEqual(groups.map((g) => g.group), ['Orders', 'Catalog & pricing', 'Inventory & supply', 'Finance & customers', 'Insights & quality', 'Administration']);
-    assert.equal(groups.reduce((n, g) => n + g.items.length, 0), 18);
+    assert.equal(groups.reduce((n, g) => n + g.items.length, 0), 19);
   });
 
   it('leaves out groups with nothing to open', () => {

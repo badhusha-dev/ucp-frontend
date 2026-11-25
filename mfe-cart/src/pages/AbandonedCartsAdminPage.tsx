@@ -37,6 +37,7 @@ import {
   LocalOfferRounded,
 } from '@mui/icons-material';
 import axios from 'axios';
+import { formatMoney } from '@ecommerce/shared-library';
 
 interface AbandonedCartItem {
   id: number;
@@ -191,7 +192,7 @@ export default function AbandonedCartsAdminPage() {
                   REVENUE AT RISK
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 900, color: '#FBBF24', mt: 0.5 }}>
-                  ${(funnel?.abandonedCartValue ?? 0).toFixed(2)}
+                  {formatMoney((funnel?.abandonedCartValue ?? 0))}
                 </Typography>
               </Box>
               <Avatar sx={{ bgcolor: 'rgba(245, 158, 11, 0.1)', color: '#FBBF24', width: 48, height: 48 }}>
@@ -199,7 +200,7 @@ export default function AbandonedCartsAdminPage() {
               </Avatar>
             </Stack>
             <Typography variant="caption" sx={{ color: '#64748B', mt: 1, display: 'block' }}>
-              Active in-flight carts: ${(funnel?.activeCartValue ?? 0).toFixed(2)}
+              Active in-flight carts: {formatMoney((funnel?.activeCartValue ?? 0))}
             </Typography>
           </Paper>
         </Grid>
@@ -313,7 +314,7 @@ export default function AbandonedCartsAdminPage() {
                       </Stack>
                     </TableCell>
                     <TableCell sx={{ color: '#06B6D4', fontWeight: 800 }}>
-                      ${cart.totalAmount?.toFixed(2)}
+                      {formatMoney(cart.totalAmount)}
                     </TableCell>
                     <TableCell>
                       <Chip

@@ -123,6 +123,12 @@ export async function signInToApplication(
 
 export function storeApplicationSession(session: ApplicationSession, storage: SessionStorageLike): void {
   storage.setItem(sessionStorageKey(session.applicationCode), JSON.stringify(session));
+  // Every application shows money in the business's currency (the token's "currency" claim).
+  const claims = decodeTokenClaims(session.token);
+  const currency = claims?.currency;
+  if (typeof currency === 'string' && /^[A-Z]{3}$/.test(currency)) storage.setItem('ucp.currency', currency);
+  // Extra currencies people may switch the screens to (code -> rate from the business currency).
+  storage.setItem('ucp.currency.rates', JSON.stringify(claims?.display_rates && typeof claims.display_rates === 'object' ? claims.display_rates : {}));
 }
 
 /** Returns the stored session for this application, clearing it if it is malformed, foreign or expired. */

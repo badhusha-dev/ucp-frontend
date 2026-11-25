@@ -34,6 +34,7 @@ import type { RootState, AppDispatch } from '@ecommerce/shared-library';
 import { addToCart, clearCart, updateQuantity } from '@ecommerce/shared-library';
 import axios from 'axios';
 import { cartSessionToken } from '../cartSession';
+import { formatMoney } from '@ecommerce/shared-library';
 
 interface BackendCartItem {
   id: number;
@@ -443,10 +444,10 @@ export default function CartPage() {
                       {/* Line Item Total & Delete */}
                       <Grid item xs={6} sm={2} sx={{ textAlign: 'right' }}>
                         <Typography variant="h6" sx={{ fontWeight: 800, color: '#F8FAFC', fontSize: '1.05rem' }}>
-                          ${(item.unitPrice * item.quantity).toFixed(2)}
+                          {formatMoney((item.unitPrice * item.quantity))}
                         </Typography>
                         <Typography variant="caption" sx={{ color: '#64748B', display: 'block' }}>
-                          ${item.unitPrice.toFixed(2)} each
+                          {formatMoney(item.unitPrice)} each
                         </Typography>
 
                         <Tooltip title="Remove item">
@@ -537,7 +538,7 @@ export default function CartPage() {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" sx={{ color: '#94A3B8' }}>Subtotal</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700, color: '#F8FAFC' }}>
-                    ${subtotal.toFixed(2)}
+                    {formatMoney(subtotal)}
                   </Typography>
                 </Box>
 
@@ -547,7 +548,7 @@ export default function CartPage() {
                       Discount ({discountPercent}%)
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 700, color: '#34D399' }}>
-                      -${discountAmount.toFixed(2)}
+                      -{formatMoney(discountAmount)}
                     </Typography>
                   </Box>
                 )}
@@ -555,14 +556,14 @@ export default function CartPage() {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" sx={{ color: '#94A3B8' }}>Estimated Shipping</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700, color: shippingFee === 0 ? '#34D399' : '#F8FAFC' }}>
-                    {shippingFee === 0 ? 'FREE' : `$${shippingFee.toFixed(2)}`}
+                    {shippingFee === 0 ? 'FREE' : `${formatMoney(shippingFee)}`}
                   </Typography>
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" sx={{ color: '#94A3B8' }}>Estimated Tax (8.25%)</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700, color: '#F8FAFC' }}>
-                    ${tax.toFixed(2)}
+                    {formatMoney(tax)}
                   </Typography>
                 </Box>
               </Stack>
@@ -575,7 +576,7 @@ export default function CartPage() {
                   Total
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 900, color: '#06B6D4' }}>
-                  ${grandTotal.toFixed(2)}
+                  {formatMoney(grandTotal)}
                 </Typography>
               </Box>
 

@@ -22,6 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import type { RootState, AppDispatch } from '@ecommerce/shared-library';
 import { updateQuantity, clearCart } from '@ecommerce/shared-library';
 import axios from 'axios';
+import { formatMoney } from '@ecommerce/shared-library';
 
 interface CartDrawerProps {
   open: boolean;
@@ -103,7 +104,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography variant="body2" sx={{ color: '#06B6D4', fontWeight: 700 }}>
-                    ${(item.price * item.quantity).toFixed(2)}
+                    {formatMoney((item.price * item.quantity))}
                   </Typography>
 
                   <Stack direction="row" spacing={0.5} alignItems="center">
@@ -138,7 +139,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant="body1" sx={{ color: '#94A3B8' }}>Subtotal</Typography>
             <Typography variant="h6" sx={{ fontWeight: 800, color: '#F8FAFC' }}>
-              ${subtotal.toFixed(2)}
+              {formatMoney(subtotal)}
             </Typography>
           </Box>
 

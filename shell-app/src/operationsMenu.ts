@@ -34,6 +34,7 @@ export const OPERATIONS_ITEMS: readonly OperationsItem[] = [
   { path: '/error-stack', label: 'Error Stack', group: 'Insights & quality', permissions: ['errors:manage'] },
   { path: '/profile/admin', label: 'User Admin', group: 'Administration', permissions: ['roles:manage'] },
   { path: '/profile/team', label: 'Client Team', group: 'Administration', permissions: ['tenant:users.read'] },
+  { path: '/profile/currency', label: 'Currency Settings', group: 'Administration', permissions: ['tenant:settings.manage'] },
 ];
 
 /** The groups that hold at least one item this user may open, in menu order, each with its visible items. */

@@ -41,6 +41,7 @@ import {
 import type { InventoryItem } from '../types/inventory';
 import { inventoryApi } from '../api/inventoryApi';
 import { CsvImportModal } from '../components/CsvImportModal';
+import { formatMoney } from '@ecommerce/shared-library';
 
 const MetricCard = ({ title, value, caption, icon, tint }: {
   title: string; value: string; caption: string; icon: React.ReactNode; tint: string;
@@ -186,7 +187,7 @@ export const InventoryCatalogPage: React.FC = () => {
         <Grid item xs={12} sm={6} lg={3}><MetricCard title="Active catalog SKUs" value={loading ? '—' : activeItems.length.toLocaleString()} caption="Products with active inventory configuration" tint="#4F46E5" icon={<Inventory2Outlined />} /></Grid>
         <Grid item xs={12} sm={6} lg={3}><MetricCard title="Warehouse locations" value={loading ? '—' : warehouses.toLocaleString()} caption="Distinct bins and warehouse sites" tint="#0F9F8F" icon={<StorefrontRounded />} /></Grid>
         <Grid item xs={12} sm={6} lg={3}><MetricCard title="Reorder rules" value={loading ? '—' : activeItems.filter((item) => item.reorderThreshold > 0).length.toLocaleString()} caption="Active SKUs with a positive threshold" tint="#D18B1F" icon={<TuneOutlined />} /></Grid>
-        <Grid item xs={12} sm={6} lg={3}><MetricCard title="Average unit cost" value={loading || activeItems.length === 0 ? '—' : `$${(activeItems.reduce((sum, item) => sum + Number(item.costPrice || 0), 0) / activeItems.length).toFixed(2)}`} caption="Configured cost across active SKUs" tint="#138A50" icon={<AttachMoneyOutlined />} /></Grid>
+        <Grid item xs={12} sm={6} lg={3}><MetricCard title="Average unit cost" value={loading || activeItems.length === 0 ? '—' : `${formatMoney((activeItems.reduce((sum, item) => sum + Number(item.costPrice || 0), 0) / activeItems.length))}`} caption="Configured cost across active SKUs" tint="#138A50" icon={<AttachMoneyOutlined />} /></Grid>
       </Grid>
 
       <Paper sx={{ p: 2, mb: 2, border: '1px solid #E8EDF4', borderRadius: 3, boxShadow: '0 4px 16px rgba(15, 23, 42, .025)' }}>
@@ -231,7 +232,7 @@ export const InventoryCatalogPage: React.FC = () => {
                 <TableCell sx={{ color: '#10223C', fontWeight: 800 }}>{item.sku || '—'}</TableCell>
                 <TableCell sx={{ color: '#475569' }}>{item.warehouseLocation || 'Unassigned'}</TableCell>
                 <TableCell align="right" sx={{ color: '#475569', fontWeight: 700 }}>{item.reorderThreshold ?? 0} units</TableCell>
-                <TableCell align="right" sx={{ color: '#10223C', fontWeight: 800 }}>${Number(item.costPrice || 0).toFixed(2)}</TableCell>
+                <TableCell align="right" sx={{ color: '#10223C', fontWeight: 800 }}>{formatMoney(Number(item.costPrice || 0))}</TableCell>
                 <TableCell><Chip size="small" label={item.active === false ? 'ARCHIVED' : 'ACTIVE'} color={item.active === false ? 'default' : 'success'} /></TableCell>
                 <TableCell align="right" sx={{ color: '#77869A' }}>{item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : '—'}</TableCell>
                 <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>

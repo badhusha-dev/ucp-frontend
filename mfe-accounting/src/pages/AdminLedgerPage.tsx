@@ -47,6 +47,7 @@ import {
   InfoOutlined,
 } from '@mui/icons-material';
 import axios from 'axios';
+import { formatMoney, businessCurrency } from '@ecommerce/shared-library';
 
 axios.interceptors.request.use((config) => {
   if (config.url && !config.url.startsWith('http') && !config.url.startsWith('/')) {
@@ -181,7 +182,7 @@ export default function AdminLedgerPage() {
   const [adjustUserId, setAdjustUserId] = useState<string>('');
   const [adjustType, setAdjustType] = useState<string>('MANUAL_CREDIT');
   const [adjustAmount, setAdjustAmount] = useState<string>('');
-  const [adjustCurrency] = useState<string>('USD');
+  const [adjustCurrency] = useState<string>(businessCurrency());
   const [adjustRefType, setAdjustRefType] = useState<string>('SUPPORT_TICKET');
   const [adjustRefId, setAdjustRefId] = useState<string>('');
   const [adjustReason, setAdjustReason] = useState<string>('');
@@ -568,7 +569,7 @@ export default function AdminLedgerPage() {
                     PLATFORM GROSS SALES
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F172A', my: 1 }}>
-                    ${Number(dashboard.grossSales).toFixed(2)}
+                    {formatMoney(Number(dashboard.grossSales))}
                     <Typography component="span" variant="subtitle2" sx={{ ml: 1, color: '#64748B' }}>
                       {dashboard.currency}
                     </Typography>
@@ -586,7 +587,7 @@ export default function AdminLedgerPage() {
                     TOTAL REFUNDS ISSUED
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 900, color: '#991B1B', my: 1 }}>
-                    -${Number(dashboard.totalRefunds).toFixed(2)}
+                    -{formatMoney(Number(dashboard.totalRefunds))}
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#B91C1C' }}>
                     Approved and settled customer refund credits
@@ -610,7 +611,7 @@ export default function AdminLedgerPage() {
                     NET RECORDED ACTIVITY
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 900, my: 1 }}>
-                    ${Number(dashboard.netRecordedActivity).toFixed(2)}
+                    {formatMoney(Number(dashboard.netRecordedActivity))}
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#C7D2FE' }}>
                     Total Credits minus Total Debits
@@ -625,7 +626,7 @@ export default function AdminLedgerPage() {
                     STORE CREDITS ISSUED
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 900, color: '#166534', my: 1 }}>
-                    +${Number(dashboard.totalCredits).toFixed(2)}
+                    +{formatMoney(Number(dashboard.totalCredits))}
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#15803D' }}>
                     Manual adjustments &amp; goodwill balances
@@ -660,7 +661,7 @@ export default function AdminLedgerPage() {
                   <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F172A', my: 1 }}>
                     {dashboard.pendingTransactionsCount} Pending
                     <Typography component="span" variant="subtitle2" sx={{ ml: 1, color: '#64748B' }}>
-                      (${Number(dashboard.pendingAmount).toFixed(2)})
+                      ({formatMoney(Number(dashboard.pendingAmount))})
                     </Typography>
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#64748B' }}>
@@ -871,7 +872,7 @@ export default function AdminLedgerPage() {
                                 textDecoration: tx.status === 'REVERSED' ? 'line-through' : 'none',
                               }}
                             >
-                              {isCredit ? '+' : '-'}${Number(tx.amount).toFixed(2)} {tx.currency}
+                              {isCredit ? '+' : '-'}{formatMoney(Number(tx.amount), tx.currency)}
                             </Typography>
                           </TableCell>
                           <TableCell>
@@ -1024,7 +1025,7 @@ export default function AdminLedgerPage() {
                         <TableCell sx={{ fontWeight: 600 }}>Order #{req.orderId}</TableCell>
                         <TableCell>User #{req.userId}</TableCell>
                         <TableCell sx={{ fontWeight: 800, color: '#166534' }}>
-                          +${Number(req.amount).toFixed(2)} {req.currency}
+                          +{formatMoney(Number(req.amount), req.currency)}
                         </TableCell>
                         <TableCell sx={{ maxWidth: 220 }}>{req.reason}</TableCell>
                         <TableCell>
@@ -1214,7 +1215,7 @@ export default function AdminLedgerPage() {
                     size="small"
                     type="number"
                     inputProps={{ step: '0.0001', min: '0.0001' }}
-                    label="Amount (USD)"
+                    label={`Amount (${businessCurrency()})`}
                     value={adjustAmount}
                     onChange={(e) => setAdjustAmount(e.target.value)}
                   />
@@ -1295,7 +1296,7 @@ export default function AdminLedgerPage() {
                     Target Transaction: #{reversalTargetTx.id} &bull; {reversalTargetTx.transactionType}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#64748B', mt: 0.5 }}>
-                    Customer: User #{reversalTargetTx.userId} &bull; Amount: ${Number(reversalTargetTx.amount).toFixed(2)} {reversalTargetTx.currency}
+                    Customer: User #{reversalTargetTx.userId} &bull; Amount: {formatMoney(Number(reversalTargetTx.amount), reversalTargetTx.currency)}
                   </Typography>
                 </Paper>
               )}
@@ -1391,7 +1392,7 @@ export default function AdminLedgerPage() {
                     Order #{targetRefund.orderId} &bull; User #{targetRefund.userId}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#166534', fontWeight: 800 }}>
-                    Requested Amount: ${Number(targetRefund.amount).toFixed(2)} {targetRefund.currency}
+                    Requested Amount: {formatMoney(Number(targetRefund.amount), targetRefund.currency)}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#64748B', mt: 1 }}>
                     <strong>Customer Reason:</strong> {targetRefund.reason}

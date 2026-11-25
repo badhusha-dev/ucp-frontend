@@ -153,7 +153,7 @@ export function validateWarehouse(f: { code?: string; name?: string; capacityUni
 export interface DashboardMetrics { skus: number; onHandUnits: number; reservedUnits: number; availableUnits: number; incomingUnits: number; lowStock: number; outOfStock: number; valuation: number; pendingAdjustments: number; openTransfers: number; warehouses: number }
 
 export function dashboardCards(m: DashboardMetrics): { label: string; value: string; tone: 'ok' | 'warn' | 'bad' | 'info' }[] {
-  const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+  const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: ((globalThis as { sessionStorage?: Storage }).sessionStorage?.getItem('ucp.currency') || 'USD'), maximumFractionDigits: 2 });
   return [
     { label: 'SKUs tracked', value: String(m.skus), tone: 'info' },
     { label: 'On hand', value: String(m.onHandUnits), tone: 'info' },

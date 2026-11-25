@@ -50,6 +50,7 @@ import {
   LockRounded,
 } from '@mui/icons-material';
 import axios from 'axios';
+import { formatMoney, businessCurrency } from '@ecommerce/shared-library';
 
 axios.interceptors.request.use((config) => {
   if (config.url && !config.url.startsWith('http') && !config.url.startsWith('/')) {
@@ -331,7 +332,7 @@ export default function CustomerLedgerPage() {
       await axios.post('/api/accounting/refunds/request', {
         orderId: parseInt(refundOrderId, 10),
         amount: parseFloat(refundAmount),
-        currency: 'USD',
+        currency: businessCurrency(),
         reason: refundReason,
       });
       setSuccessMsg('Refund request submitted successfully. Our accounting team will review it shortly.');
@@ -519,7 +520,7 @@ export default function CustomerLedgerPage() {
                 <Typography variant="h4" sx={{ fontWeight: 900, my: 1 }}>
                   ${overview ? Number(overview.availableStoreCredit ?? overview.currentStoreCredit ?? 0).toFixed(2) : '0.00'}
                   <Typography component="span" variant="subtitle2" sx={{ ml: 1, color: '#A5B4FC', fontWeight: 600 }}>
-                    {overview?.currency || 'USD'}
+                    {overview?.currency || businessCurrency()}
                   </Typography>
                 </Typography>
               )}
@@ -785,7 +786,7 @@ export default function CustomerLedgerPage() {
                             textDecoration: tx.status === 'REVERSED' ? 'line-through' : 'none',
                           }}
                         >
-                          {isCredit ? '+' : '-'}${Number(tx.amount).toFixed(2)} {tx.currency}
+                          {isCredit ? '+' : '-'}{formatMoney(Number(tx.amount), tx.currency)}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -1022,10 +1023,10 @@ export default function CustomerLedgerPage() {
                       <TableRow key={idx}>
                         <TableCell sx={{ fontWeight: 600 }}>{item.productName}</TableCell>
                         <TableCell sx={{ color: '#64748B', fontFamily: 'monospace' }}>{item.sku}</TableCell>
-                        <TableCell align="right">${Number(item.unitPrice).toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatMoney(Number(item.unitPrice))}</TableCell>
                         <TableCell align="center">{item.quantity}</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 700 }}>
-                          ${Number(item.subtotal).toFixed(2)}
+                          {formatMoney(Number(item.subtotal))}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1039,23 +1040,23 @@ export default function CustomerLedgerPage() {
                   <Stack spacing={1}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="body2" sx={{ color: '#64748B' }}>Subtotal:</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>${Number(invoice.subtotal).toFixed(2)}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatMoney(Number(invoice.subtotal))}</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="body2" sx={{ color: '#64748B' }}>Shipping Cost:</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>${Number(invoice.shippingCost).toFixed(2)}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatMoney(Number(invoice.shippingCost))}</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="body2" sx={{ color: '#64748B' }}>
                         Tax (Calculated at Checkout):
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>${Number(invoice.tax).toFixed(2)}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatMoney(Number(invoice.tax))}</Typography>
                     </Box>
                     {Number(invoice.discount) > 0 && (
                       <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="body2" sx={{ color: '#16A34A' }}>Discount:</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 600, color: '#16A34A' }}>
-                          -${Number(invoice.discount).toFixed(2)}
+                          -{formatMoney(Number(invoice.discount))}
                         </Typography>
                       </Box>
                     )}
@@ -1063,7 +1064,7 @@ export default function CustomerLedgerPage() {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Total Paid:</Typography>
                       <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#1E1B4B' }}>
-                        ${Number(invoice.totalAmount).toFixed(2)} {invoice.currency}
+                        {formatMoney(Number(invoice.totalAmount), invoice.currency)}
                       </Typography>
                     </Box>
                   </Stack>
@@ -1125,7 +1126,7 @@ export default function CustomerLedgerPage() {
                 required
                 fullWidth
                 size="small"
-                label="Refund Amount (USD)"
+                label={`Refund Amount (${businessCurrency()})`}
                 type="number"
                 inputProps={{ step: '0.01', min: '0.01' }}
                 value={refundAmount}
@@ -1197,7 +1198,7 @@ export default function CustomerLedgerPage() {
                       <TableCell sx={{ fontWeight: 700 }}>#{req.id}</TableCell>
                       <TableCell>Order #{req.orderId}</TableCell>
                       <TableCell sx={{ fontWeight: 800, color: '#166534' }}>
-                        +${Number(req.amount).toFixed(2)} {req.currency}
+                        +{formatMoney(Number(req.amount), req.currency)}
                       </TableCell>
                       <TableCell sx={{ maxWidth: 200 }}>{req.reason}</TableCell>
                       <TableCell>

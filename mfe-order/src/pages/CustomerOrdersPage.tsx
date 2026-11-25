@@ -8,9 +8,10 @@ import { AssignmentReturnRounded, HistoryRounded, RefreshRounded } from '@mui/ic
 import { useSelector } from 'react-redux';
 import type { RootState } from '@ecommerce/shared-library';
 import axios from 'axios';
+import { formatMoney } from '@ecommerce/shared-library';
 
 type Row = Record<string, any>;
-const money = (value: unknown) => new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(Number(value || 0));
+const money = (value: unknown) => formatMoney(Number(value || 0));
 const date = (value: unknown) => value ? new Date(String(value)).toLocaleDateString() : '—';
 
 export default function CustomerOrdersPage() {

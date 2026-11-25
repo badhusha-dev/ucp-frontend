@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Alert, Box, Button, Chip, IconButton, InputAdornment, Paper, Stack, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, Tooltip, Typography,
+  Alert, Box, Button, Chip, MenuItem, IconButton, InputAdornment, Paper, Stack, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, Tooltip, Typography,
 } from '@mui/material';
 import { AddRounded, EditOutlined, SaveRounded } from '@mui/icons-material';
 import { ErrorState, LoadingState } from '@ecommerce/shared-library/src/ui/StateViews';
 import { posApi, type AuditEntry, type Me, type Register, type Settings } from '../api';
 import { parseAmount } from '../posModel';
 import { dateTime } from '../format';
+import { BUSINESS_CURRENCIES } from '@ecommerce/shared-library/src/ui/money';
 
 interface Props { me: Me; onSaved: () => void }
 
@@ -75,8 +76,10 @@ export function SettingsScreen({ me, onSaved }: Props) {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Prices in the catalog are before tax; the till adds this tax rate on every sale.</Typography>
           <Stack spacing={2}>
             <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '130px 1fr 1fr' } }}>
-              <TextField label="Currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase().slice(0, 3) })}
-                helperText="e.g. INR, USD" error={!/^[A-Za-z]{3}$/.test(form.currency.trim())} />
+              <TextField select label="Currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}
+                helperText="Prices, receipts and reports at the till use this currency">
+                {Array.from(new Set([form.currency, ...BUSINESS_CURRENCIES])).map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+              </TextField>
               <TextField label="Tax rate" value={form.tax} onChange={(e) => setForm({ ...form, tax: e.target.value })} inputMode="decimal"
                 error={!(tax >= 0 && tax <= 100)} helperText="Added to every sale" InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }} fullWidth />
               <TextField label="Cashier discount limit" value={form.limit} onChange={(e) => setForm({ ...form, limit: e.target.value })} inputMode="decimal"

@@ -5,7 +5,7 @@ export type Field = { key: string; label: string; type?: string; required?: bool
 export type Resource = { key: string; label: string; endpoint: string; fields: Field[]; title: (row: RecordRow) => string };
 
 export function defaultForm(resource: Resource): Record<string, string> {
-  return Object.fromEntries(resource.fields.map(field => [field.key, field.key === 'currency' ? 'USD' : field.key === 'lifecycleStage' ? 'LEAD' : field.key === 'stage' ? 'Qualification' : field.key === 'priority' ? 'NORMAL' : field.key === 'probability' ? '10' : '']));
+  return Object.fromEntries(resource.fields.map(field => [field.key, field.key === 'currency' ? ((globalThis as { sessionStorage?: Storage }).sessionStorage?.getItem('ucp.currency') || 'USD') : field.key === 'lifecycleStage' ? 'LEAD' : field.key === 'stage' ? 'Qualification' : field.key === 'priority' ? 'NORMAL' : field.key === 'probability' ? '10' : '']));
 }
 
 export function singular(key: string) {

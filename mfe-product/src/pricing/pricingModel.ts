@@ -99,7 +99,7 @@ export interface CampaignForm {
 
 export function emptyCampaignForm(type: PromotionType, defaults: Partial<CampaignForm> = {}): CampaignForm {
   return {
-    name: '', promotionType: type, scope: 'PRODUCT', currency: 'USD', startsAt: '', endsAt: '', targetIds: '', value: '', buyQuantity: '2',
+    name: '', promotionType: type, scope: 'PRODUCT', currency: ((globalThis as { sessionStorage?: Storage }).sessionStorage?.getItem('ucp.currency') || 'USD'), startsAt: '', endsAt: '', targetIds: '', value: '', buyQuantity: '2',
     getQuantity: '1', minQuantity: '2', minOrderValue: '', maxDiscountAmount: '', usageLimitTotal: '', usageLimitPerCustomer: '', priority: '100',
     stackable: false, automatic: false, customerSegment: '', firstOrderOnly: false, ...defaults,
   };

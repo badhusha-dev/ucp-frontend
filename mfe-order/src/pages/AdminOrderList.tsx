@@ -36,6 +36,7 @@ import {
   AssignmentReturnRounded,
 } from '@mui/icons-material';
 import axios from 'axios';
+import { formatMoney } from '@ecommerce/shared-library';
 
 axios.interceptors.request.use((config) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
@@ -187,7 +188,7 @@ export default function AdminOrderList() {
                       Gross Platform Revenue
                     </Typography>
                     <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mt: 0.5 }}>
-                      ${metrics.revenue.toFixed(2)}
+                      {formatMoney(metrics.revenue)}
                     </Typography>
                   </Box>
                   <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: '#ECFDF5', color: '#10B981' }}>
@@ -379,7 +380,7 @@ export default function AdminOrderList() {
 
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A' }}>
-                          ${order.totalAmount.toFixed(2)}
+                          {formatMoney(order.totalAmount)}
                         </Typography>
                       </TableCell>
 

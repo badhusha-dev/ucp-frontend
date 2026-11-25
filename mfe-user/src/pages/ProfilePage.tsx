@@ -31,6 +31,7 @@ import {
 import { useSelector } from 'react-redux';
 import type { RootState } from '@ecommerce/shared-library';
 import axios from 'axios';
+import { formatMoney } from '@ecommerce/shared-library';
 
 axios.interceptors.request.use((config) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
@@ -290,7 +291,7 @@ export default function ProfilePage() {
               </Box>
               <Box>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A' }}>
-                  ${totalSpent.toFixed(2)}
+                  {formatMoney(totalSpent)}
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>
                   Lifetime Purchases
@@ -409,7 +410,7 @@ export default function ProfilePage() {
                             TOTAL AMOUNT
                           </Typography>
                           <Typography variant="h5" sx={{ fontWeight: 900, color: '#0F172A' }}>
-                            ${order.totalAmount?.toFixed(2) || '0.00'}
+                            {formatMoney(order.totalAmount ?? 0)}
                           </Typography>
                         </Box>
 

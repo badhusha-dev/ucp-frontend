@@ -1,4 +1,4 @@
-import { ApplicationGate } from '@ecommerce/shared-library';
+import { ApplicationGate, CurrencySwitcher } from '@ecommerce/shared-library';
 import ApplicationsPage from './pages/ApplicationsPage';
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/PasswordResetPages';
 import React, { lazy, Suspense, useState } from 'react';
@@ -395,6 +395,9 @@ function Navigation() {
           <Stack direction="row" spacing={1.5} alignItems="center">
             {isAuthenticated ? (
               <>
+                {/* Display currency (only when the business offers more than one) */}
+                <CurrencySwitcher dark />
+
                 {/* Notification Bell */}
                 <NotificationBell />
 

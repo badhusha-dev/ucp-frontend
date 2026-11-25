@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 import { AddRounded, ArchiveRounded, EditRounded, TaskAltRounded } from '@mui/icons-material';
 import axios from 'axios';
+import { businessCurrency, formatMoney } from '@ecommerce/shared-library';
 
 
 const resources: Resource[] = [
@@ -143,7 +144,7 @@ export default function CrmRecordManager() {
 function renderDetails(key: string, row: RecordRow) {
   if (key === 'contacts') return `${row.email || 'No email'} · ${row.phone || 'No phone'} · ${row.owner || 'Unassigned'}`;
   if (key === 'companies') return `${row.domain || 'No domain'} · ${row.industry || 'No industry'} · ${row.contactCount || 0} contacts`;
-  if (key === 'opportunities') return `${row.stage} · ${Number(row.probability || 0)}% · ${new Intl.NumberFormat(undefined, { style: 'currency', currency: row.currency || 'USD' }).format(Number(row.amount || 0))}`;
+  if (key === 'opportunities') return `${row.stage} · ${Number(row.probability || 0)}% · ${formatMoney(Number(row.amount || 0), row.currency || businessCurrency())}`;
   if (key === 'tasks') return `${row.priority} · ${row.owner || 'Unassigned'} · ${row.dueAt ? new Date(row.dueAt).toLocaleString() : 'No due date'}`;
   return `${JSON.stringify(row.criteria || {})} · ${row.memberCount || 0} members`;
 }

@@ -14,6 +14,7 @@ import { formatAmount } from './format';
 import { EmptyState, ErrorState, LoadingState } from './StateViews';
 import { ProductEditorDialog } from './ProductEditorDialog';
 import { stockTone, type AdminProduct, type CatalogAdminApi, type CatalogCategory, type ProductStatus, type SaveResult } from './productCatalog';
+import { businessCurrency } from './money';
 
 export type { CatalogAdminApi } from './productCatalog';
 
@@ -28,7 +29,7 @@ interface Props {
 
 const STATUS_LABELS: Record<ProductStatus, string> = { active: 'Active', archived: 'Archived', all: 'All' };
 
-export function ProductCatalogManager({ api, canManage, canManageStock, currency = 'USD', title = 'Products', subtitle }: Props) {
+export function ProductCatalogManager({ api, canManage, canManageStock, currency = businessCurrency(), title = 'Products', subtitle }: Props) {
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [status, setStatus] = useState<ProductStatus>('active');

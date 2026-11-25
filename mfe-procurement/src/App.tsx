@@ -12,6 +12,7 @@ import {
   AddRounded, ArchiveRounded, CheckCircleRounded, EditRounded, Inventory2Rounded, LocalShippingRounded,
   ReceiptLongRounded, RefreshRounded, RestoreRounded, StorefrontRounded, WarningAmberRounded,
 } from '@mui/icons-material';
+import { businessCurrency, formatMoney } from '@ecommerce/shared-library';
 
 type Row = Record<string, any>;
 const api = axios.create({ baseURL: '/api/procurement' }); // Same origin: nginx (containers) and the Vite dev proxy forward /api to the gateway.
@@ -21,7 +22,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 const failureText = (error: any) => String(error?.response?.data?.message || error?.response?.data || error?.message || 'Unable to complete the request.');
-const money = (value: unknown, currency = 'USD') => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(value || 0));
+const money = (value: unknown, currency = businessCurrency()) => formatMoney(Number(value || 0), currency);
 const day = (value: unknown) => value ? new Date(String(value)).toLocaleDateString() : '—';
 const inputSx = { '& .MuiOutlinedInput-root': { borderRadius: 2 } };
 
@@ -52,7 +53,7 @@ function AppContent() {
 
   const [supplierDialog, setSupplierDialog] = useState(false);
   const [supplierEdit, setSupplierEdit] = useState<Row | null>(null);
-  const [supplierForm, setSupplierForm] = useState<Row>({ supplierCode: '', name: '', contactName: '', email: '', phone: '', paymentTermsDays: '30', currency: 'USD', address: '', notes: '' });
+  const [supplierForm, setSupplierForm] = useState<Row>({ supplierCode: '', name: '', contactName: '', email: '', phone: '', paymentTermsDays: '30', currency: businessCurrency(), address: '', notes: '' });
   const [catalogSupplier, setCatalogSupplier] = useState<Row | null>(null);
   const [catalogItems, setCatalogItems] = useState<Row[]>([]);
   const [catalogEdit, setCatalogEdit] = useState<Row | null>(null);
@@ -93,7 +94,7 @@ function AppContent() {
 
   const openSupplier = (row?: Row) => {
     setSupplierEdit(row || null);
-    setSupplierForm(row ? { ...row, paymentTermsDays: String(row.paymentTermsDays ?? 30) } : { supplierCode: '', name: '', contactName: '', email: '', phone: '', paymentTermsDays: '30', currency: 'USD', address: '', notes: '' });
+    setSupplierForm(row ? { ...row, paymentTermsDays: String(row.paymentTermsDays ?? 30) } : { supplierCode: '', name: '', contactName: '', email: '', phone: '', paymentTermsDays: '30', currency: businessCurrency(), address: '', notes: '' });
     setSupplierDialog(true);
   };
   const saveSupplier = async () => {
@@ -266,7 +267,7 @@ function AppContent() {
     <Dialog open={Boolean(catalogSupplier)} onClose={() => setCatalogSupplier(null)} fullWidth maxWidth="md"><DialogTitle>Product catalog · {catalogSupplier?.name}</DialogTitle><DialogContent>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>Map product IDs to vendor SKUs, costs, minimum order quantities, and lead times.</Typography>
       <Grid container spacing={1} sx={{ mb: 2 }}>{[['productId', 'Product ID'], ['supplierSku', 'Supplier SKU'], ['unitCost', 'Unit cost'], ['leadTimeDays', 'Lead days'], ['minimumOrderQuantity', 'Minimum qty']].map(([key, label]) => <Grid item xs={6} sm={key === 'supplierSku' ? 4 : 2} key={key}><TextField fullWidth size="small" label={label} type={key === 'productId' || key === 'leadTimeDays' || key === 'minimumOrderQuantity' || key === 'unitCost' ? 'number' : 'text'} value={catalogForm[key]} disabled={Boolean(catalogEdit && key === 'productId')} onChange={event => setCatalogForm({ ...catalogForm, [key]: event.target.value })} sx={inputSx} /></Grid>)}<Grid item xs={6} sm={2}><FormControlLabel control={<Checkbox checked={Boolean(catalogForm.preferred)} onChange={event => setCatalogForm({ ...catalogForm, preferred: event.target.checked })} />} label="Preferred" /></Grid><Grid item xs={12}><Button variant="contained" onClick={() => void saveCatalogItem()} disabled={!catalogForm.productId || !catalogForm.unitCost}>{catalogEdit ? 'Save catalog item' : 'Add product'}</Button>{catalogEdit && <Button sx={{ ml: 1 }} onClick={() => { setCatalogEdit(null); setCatalogForm({ productId: '', supplierSku: '', unitCost: '', leadTimeDays: '7', minimumOrderQuantity: '1', preferred: false }); }}>Cancel edit</Button>}</Grid></Grid>
-      <Divider sx={{ my: 2 }} /><DataTable rows={catalogItems} empty="No products in this supplier catalog." columns={[{ key: 'productId', label: 'PRODUCT' }, { key: 'supplierSku', label: 'SUPPLIER SKU' }, { key: 'unitCost', label: 'UNIT COST', render: row => money(row.unitCost, catalogSupplier?.currency || 'USD') }, { key: 'leadTimeDays', label: 'LEAD' }, { key: 'minimumOrderQuantity', label: 'MIN QTY' }, { key: 'preferred', label: 'PREFERRED', render: row => row.preferred ? 'Yes' : '—' }, { key: 'active', label: 'STATUS', render: row => row.active ? 'Active' : 'Archived' }, { key: 'actions', label: 'ACTIONS', render: row => row.active ? <Stack direction="row"><IconButton size="small" onClick={() => { setCatalogEdit(row); setCatalogForm({ ...row, productId: String(row.productId), unitCost: String(row.unitCost), leadTimeDays: String(row.leadTimeDays), minimumOrderQuantity: String(row.minimumOrderQuantity) }); }}><EditRounded fontSize="small" /></IconButton><IconButton size="small" color="warning" onClick={() => void run(async () => { await api.delete(`/suppliers/${catalogSupplier?.id}/products/${row.productId}`); setCatalogItems((await api.get(`/suppliers/${catalogSupplier?.id}/products?includeInactive=true`)).data); }, 'Supplier catalog item archived.')}><ArchiveRounded fontSize="small" /></IconButton></Stack> : '—' }]} />
+      <Divider sx={{ my: 2 }} /><DataTable rows={catalogItems} empty="No products in this supplier catalog." columns={[{ key: 'productId', label: 'PRODUCT' }, { key: 'supplierSku', label: 'SUPPLIER SKU' }, { key: 'unitCost', label: 'UNIT COST', render: row => money(row.unitCost, catalogSupplier?.currency || businessCurrency()) }, { key: 'leadTimeDays', label: 'LEAD' }, { key: 'minimumOrderQuantity', label: 'MIN QTY' }, { key: 'preferred', label: 'PREFERRED', render: row => row.preferred ? 'Yes' : '—' }, { key: 'active', label: 'STATUS', render: row => row.active ? 'Active' : 'Archived' }, { key: 'actions', label: 'ACTIONS', render: row => row.active ? <Stack direction="row"><IconButton size="small" onClick={() => { setCatalogEdit(row); setCatalogForm({ ...row, productId: String(row.productId), unitCost: String(row.unitCost), leadTimeDays: String(row.leadTimeDays), minimumOrderQuantity: String(row.minimumOrderQuantity) }); }}><EditRounded fontSize="small" /></IconButton><IconButton size="small" color="warning" onClick={() => void run(async () => { await api.delete(`/suppliers/${catalogSupplier?.id}/products/${row.productId}`); setCatalogItems((await api.get(`/suppliers/${catalogSupplier?.id}/products?includeInactive=true`)).data); }, 'Supplier catalog item archived.')}><ArchiveRounded fontSize="small" /></IconButton></Stack> : '—' }]} />
     </DialogContent><DialogActions><Button onClick={() => setCatalogSupplier(null)}>Close</Button></DialogActions></Dialog>
 
     <Dialog open={poDialog} onClose={() => setPoDialog(false)} fullWidth maxWidth="md"><DialogTitle>{poEdit ? `Edit draft · ${poEdit.poNumber}` : 'Create draft purchase order'}</DialogTitle><DialogContent>

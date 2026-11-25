@@ -392,7 +392,7 @@ export function SettingsScreen({ storefront, can, onChanged }: ScreenProps) {
 }
 
 const LANGUAGE_CHOICES = ['en', 'en-US', 'en-GB', 'fr', 'de', 'es', 'it', 'pt', 'nl', 'ar', 'hi', 'ta', 'te', 'ml', 'zh', 'ja', 'ko', 'ru', 'tr'];
-const CURRENCY_CHOICES = ['USD', 'EUR', 'GBP', 'INR', 'AED', 'SAR', 'JPY', 'CNY', 'AUD', 'CAD', 'SGD', 'CHF'];
+const CURRENCY_CHOICES = ['INR', 'MYR', 'USD', 'EUR', 'GBP', 'AED', 'SAR', 'JPY', 'CNY', 'AUD', 'CAD', 'SGD', 'CHF'];
 const nameOf = (code: string) => { try { return new Intl.DisplayNames([code], { type: 'language' }).of(code) ?? code; } catch { return code; } };
 
 export function LocalizationScreen({ storefront, can, onChanged }: ScreenProps) {
