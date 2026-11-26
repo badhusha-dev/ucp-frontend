@@ -1,5 +1,6 @@
 import { requestToken } from '@ecommerce/shared-library';
 import React, { useEffect, useState, useCallback } from 'react';
+import { REFUND_METHODS, refundReferenceProblem, type RefundMethod } from './accountingModel';
 import {
   Typography,
   Paper,
@@ -121,6 +122,9 @@ interface AdminRefundRequest {
   decisionNotes?: string;
   reviewedBy?: string;
   reviewedAt?: string;
+  refundMethod?: string;
+  refundReference?: string;
+  refundedAt?: string;
   createdAt: string;
 }
 
@@ -168,6 +172,9 @@ export default function AdminLedgerPage() {
   const [targetRefund, setTargetRefund] = useState<AdminRefundRequest | null>(null);
   const [refundDecision, setRefundDecision] = useState<'APPROVED' | 'REJECTED'>('APPROVED');
   const [decisionNotes, setDecisionNotes] = useState<string>('');
+  const [refundMethod, setRefundMethod] = useState<RefundMethod | ''>('');
+  const [refundReference, setRefundReference] = useState<string>('');
+  const refundIssue = refundDecision === 'APPROVED' ? refundReferenceProblem(refundMethod, refundReference) : '';
   const [processingRefund, setProcessingRefund] = useState<boolean>(false);
 
   // Tab 3: Audit Logs State
@@ -261,8 +268,9 @@ export default function AdminLedgerPage() {
     try {
       const params: Record<string, any> = {};
       if (filterRefundStatus) params.status = filterRefundStatus;
-      const res = await axios.get<AdminRefundRequest[]>('/api/accounting/admin/refunds', { params });
-      setRefundRequests(res.data || []);
+      const res = await axios.get<AdminRefundRequest[] | { content?: AdminRefundRequest[] }>('/api/accounting/admin/refunds', { params: { ...params, size: 100 } });
+      // The server returns a page ({ content: [...] }); older versions returned a plain list.
+      setRefundRequests(Array.isArray(res.data) ? res.data : res.data?.content || []);
     } catch (err: any) {
       console.error('Failed to load refund requests', err);
     } finally {
@@ -410,12 +418,18 @@ export default function AdminLedgerPage() {
       setActionError('Decision notes are mandatory.');
       return;
     }
+    if (refundIssue) {
+      setActionError(refundIssue);
+      return;
+    }
     setProcessingRefund(true);
     setActionError(null);
     try {
       await axios.post(`/api/accounting/admin/refunds/${targetRefund.id}/process`, {
         approved: refundDecision === 'APPROVED',
         decisionNotes: decisionNotes,
+        refundMethod: refundDecision === 'APPROVED' ? refundMethod : undefined,
+        refundReference: refundDecision === 'APPROVED' ? refundReference.replace(/\s/g, '') || undefined : undefined,
       });
       setActionSuccess(
         `Refund #${targetRefund.id} ${refundDecision.toLowerCase()} successfully. Subledger updated.`
@@ -423,10 +437,12 @@ export default function AdminLedgerPage() {
       setProcessModalOpen(false);
       setTargetRefund(null);
       setDecisionNotes('');
+      setRefundMethod('');
+      setRefundReference('');
       fetchRefundRequests();
       fetchDashboard();
     } catch (err: any) {
-      setActionError(err.response?.data?.error || 'Failed to process refund request.');
+      setActionError(err.response?.data?.message || err.response?.data?.error || 'Failed to process refund request.');
     } finally {
       setProcessingRefund(false);
     }
@@ -1049,6 +1065,11 @@ export default function AdminLedgerPage() {
                               <Typography variant="caption" sx={{ color: '#94A3B8' }}>
                                 By {req.reviewedBy} at {req.reviewedAt ? new Date(req.reviewedAt).toLocaleDateString() : ''}
                               </Typography>
+                              {req.refundMethod && (
+                                <Typography variant="caption" display="block" sx={{ color: '#475569' }}>
+                                  Paid by {REFUND_METHODS.find((m) => m.value === req.refundMethod)?.label || req.refundMethod}{req.refundReference ? ` · ${req.refundReference}` : ''}
+                                </Typography>
+                              )}
                             </>
                           ) : (
                             'Pending Review'
@@ -1423,8 +1444,37 @@ export default function AdminLedgerPage() {
                 onChange={(e) => setDecisionNotes(e.target.value)}
               />
 
+              {refundDecision === 'APPROVED' && (
+                <>
+                  <TextField
+                    select
+                    required
+                    fullWidth
+                    size="small"
+                    label="How the refund was paid"
+                    value={refundMethod}
+                    onChange={(e) => setRefundMethod(e.target.value as RefundMethod)}
+                  >
+                    {REFUND_METHODS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                  </TextField>
+                  {refundMethod && (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label={REFUND_METHODS.find((m) => m.value === refundMethod)?.reference}
+                      value={refundReference}
+                      error={Boolean(refundReference) && Boolean(refundIssue)}
+                      helperText={refundIssue || 'Saved with the refund so it can be matched to the bank statement'}
+                      onChange={(e) => setRefundReference(e.target.value)}
+                    />
+                  )}
+                </>
+              )}
+
               <Alert severity="info" sx={{ fontSize: '0.78rem' }}>
-                Simulated Payment Gateway: Approving will post a linked order refund credit to the customer ledger and set order status to REFUNDED.
+                {refundDecision === 'APPROVED'
+                  ? 'Pay the refund first (UPI, bank transfer, card terminal, cash or store credit), then record it here. Approving posts the refund to the customer ledger and sets the order to REFUNDED. No money is moved from this screen.'
+                  : 'Rejecting closes the request with your notes. The customer ledger does not change.'}
               </Alert>
             </Stack>
           </DialogContent>
@@ -1436,7 +1486,7 @@ export default function AdminLedgerPage() {
               type="submit"
               variant="contained"
               color={refundDecision === 'APPROVED' ? 'success' : 'error'}
-              disabled={processingRefund}
+              disabled={processingRefund || Boolean(refundIssue)}
               sx={{ textTransform: 'none', fontWeight: 600 }}
             >
               {processingRefund ? 'Processing...' : `Confirm ${refundDecision}`}

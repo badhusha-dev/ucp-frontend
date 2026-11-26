@@ -5,7 +5,8 @@ import {
 import { AddRounded, EditOutlined, SaveRounded } from '@mui/icons-material';
 import { ErrorState, LoadingState } from '@ecommerce/shared-library/src/ui/StateViews';
 import { posApi, type AuditEntry, type Me, type Register, type Settings } from '../api';
-import { parseAmount } from '../posModel';
+import { GST_STATES, gstinProblem, isUpiId, parseAmount } from '../posModel';
+import { GstRatesPanel, TablesPanel } from './SettingsPanels';
 import { dateTime } from '../format';
 import { BUSINESS_CURRENCIES } from '@ecommerce/shared-library/src/ui/money';
 
@@ -13,8 +14,11 @@ interface Props { me: Me; onSaved: () => void }
 
 /** Store set-up for managers: currency, tax, receipt text, cashier discount limit, registers and the audit trail. */
 export function SettingsScreen({ me, onSaved }: Props) {
-  const [form, setForm] = useState({ currency: me.settings.currency, tax: String(me.settings.taxRatePercent), header: me.settings.receiptHeader ?? '',
-    footer: me.settings.receiptFooter ?? '', limit: String(me.settings.maxCashierDiscountPercent) });
+  const formOf = (st: Settings) => ({ currency: st.currency, tax: String(st.taxRatePercent), header: st.receiptHeader ?? '',
+    footer: st.receiptFooter ?? '', limit: String(st.maxCashierDiscountPercent), upiVpa: st.upiVpa ?? '', upiName: st.upiPayeeName ?? '',
+    gstEnabled: !!st.gstEnabled, gstin: st.gstin ?? '', legalName: st.legalName ?? '', address: st.storeAddress ?? '', stateCode: st.stateCode ?? '',
+    restaurant: !!st.restaurantMode });
+  const [form, setForm] = useState(() => formOf(me.settings));
   const [registers, setRegisters] = useState<Register[]>(me.registers);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,15 +45,25 @@ export function SettingsScreen({ me, onSaved }: Props) {
 
   const tax = parseAmount(form.tax);
   const limit = parseAmount(form.limit);
-  const valid = /^[A-Za-z]{3}$/.test(form.currency.trim()) && tax >= 0 && tax <= 100 && limit >= 0 && limit <= 100;
+  const upiProblem = form.upiVpa.trim() && !isUpiId(form.upiVpa) ? 'A UPI ID looks like storename@bank' : '';
+  const gstinIssue = gstinProblem(form.gstin);
+  const gstProblem = !form.gstEnabled ? '' : !form.gstin.trim() ? 'Enter the GSTIN to issue GST invoices.' : gstinIssue
+    ? gstinIssue : !form.legalName.trim() ? 'Enter the legal name registered for the GSTIN.' : form.currency.trim().toUpperCase() !== 'INR'
+      ? 'GST invoices are in rupees: set the currency to INR.' : '';
+  const valid = /^[A-Za-z]{3}$/.test(form.currency.trim()) && tax >= 0 && tax <= 100 && limit >= 0 && limit <= 100 && !upiProblem && !gstProblem
+    && !(form.gstin.trim() && gstinIssue);
 
   const save = async () => {
     setSaving(true);
     setError('');
     try {
+      // Empty text clears a UPI or GST field (null would keep the saved value).
+      const gstin = form.gstin.replace(/\s/g, '').toUpperCase();
       const saved: Settings = await posApi.saveSettings({ currency: form.currency.trim().toUpperCase(), taxRatePercent: tax, receiptHeader: form.header.trim() || null,
-        receiptFooter: form.footer.trim() || null, maxCashierDiscountPercent: limit });
-      setForm({ currency: saved.currency, tax: String(saved.taxRatePercent), header: saved.receiptHeader ?? '', footer: saved.receiptFooter ?? '', limit: String(saved.maxCashierDiscountPercent) });
+        receiptFooter: form.footer.trim() || null, maxCashierDiscountPercent: limit, upiVpa: form.upiVpa.trim(), upiPayeeName: form.upiName.trim(),
+        gstEnabled: form.gstEnabled, gstin, legalName: form.legalName.trim(), storeAddress: form.address.trim(),
+        stateCode: gstin ? gstin.slice(0, 2) : form.stateCode, restaurantMode: form.restaurant });
+      setForm(formOf(saved));
       setNotice('Store settings saved. New sales use them straight away.');
       onSaved();
       void load();
@@ -89,6 +103,46 @@ export function SettingsScreen({ me, onSaved }: Props) {
               inputProps={{ maxLength: 200 }} placeholder={'Store name\nAddress · Phone · Tax number'} />
             <TextField label="Receipt footer" value={form.footer} onChange={(e) => setForm({ ...form, footer: e.target.value })} multiline minRows={2}
               inputProps={{ maxLength: 300 }} placeholder="Returns within 30 days with this receipt. Thank you!" />
+            <Typography fontWeight={800} sx={{ pt: 1 }}>UPI payments</Typography>
+            <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
+              <TextField label="Store UPI ID" value={form.upiVpa} onChange={(e) => setForm({ ...form, upiVpa: e.target.value.trim() })}
+                placeholder="cornerstore@okaxis" error={!!upiProblem} helperText={upiProblem || 'The till shows a QR code that pays this UPI ID'} />
+              <TextField label="Name shown in UPI apps" value={form.upiName} onChange={(e) => setForm({ ...form, upiName: e.target.value })}
+                inputProps={{ maxLength: 100 }} helperText="Usually the shop name" />
+            </Box>
+
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ pt: 1 }}>
+              <Box>
+                <Typography fontWeight={800}>GST tax invoices</Typography>
+                <Typography variant="caption" color="text.secondary">Receipts print as tax invoices with HSN codes and CGST/SGST or IGST.</Typography>
+              </Box>
+              <Switch checked={form.gstEnabled} onChange={(e) => setForm({ ...form, gstEnabled: e.target.checked })} inputProps={{ 'aria-label': 'GST tax invoices' }} />
+            </Stack>
+            {form.gstEnabled && (
+              <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
+                <TextField label="GSTIN" value={form.gstin} onChange={(e) => {
+                  const gstin = e.target.value.toUpperCase().replace(/\s/g, '').slice(0, 15);
+                  setForm({ ...form, gstin, stateCode: gstin.length >= 2 ? gstin.slice(0, 2) : form.stateCode });
+                }} error={!!gstinIssue} helperText={gstinIssue || '15 characters, e.g. 29ABCDE1234F1ZW'} />
+                <TextField select label="State" value={form.stateCode} disabled helperText="From the first two digits of the GSTIN">
+                  <MenuItem value="">—</MenuItem>
+                  {GST_STATES.map((st) => <MenuItem key={st.code} value={st.code}>{st.code} · {st.name}</MenuItem>)}
+                </TextField>
+                <TextField label="Legal name" value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} inputProps={{ maxLength: 150 }}
+                  helperText="As registered for the GSTIN" />
+                <TextField label="Store address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} inputProps={{ maxLength: 300 }} />
+              </Box>
+            )}
+            {gstProblem && <Alert severity="warning" sx={{ py: 0 }}>{gstProblem}</Alert>}
+
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ pt: 1 }}>
+              <Box>
+                <Typography fontWeight={800}>Restaurant mode</Typography>
+                <Typography variant="caption" color="text.secondary">Adds Tables and Kitchen screens: table orders, kitchen order tickets (KOT) and bills.</Typography>
+              </Box>
+              <Switch checked={form.restaurant} onChange={(e) => setForm({ ...form, restaurant: e.target.checked })} inputProps={{ 'aria-label': 'Restaurant mode' }} />
+            </Stack>
+
             <Box><Button variant="contained" startIcon={<SaveRounded />} disabled={!valid || saving} onClick={() => void save()}>{saving ? 'Saving…' : 'Save settings'}</Button></Box>
           </Stack>
         </Paper>
@@ -141,6 +195,11 @@ export function SettingsScreen({ me, onSaved }: Props) {
             </Table>
           )}
         </Paper>
+      </Box>
+
+      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', lg: me.settings.restaurantMode ? '1fr 1fr' : '1fr' }, alignItems: 'start' }}>
+        <GstRatesPanel me={me} onError={setError} onNotice={setNotice} />
+        {me.settings.restaurantMode && <TablesPanel onError={setError} onNotice={setNotice} />}
       </Box>
 
       <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 3, overflowX: 'auto' }}>
