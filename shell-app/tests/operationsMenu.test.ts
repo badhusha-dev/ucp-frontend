@@ -1,12 +1,12 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { canViewOperations, OPERATIONS_ITEMS, visibleOperations } from '../src/operationsMenu.ts';
+import { canViewOperations, MOVED_TO_SUPER_ADMIN, OPERATIONS_ITEMS, visibleOperations } from '../src/operationsMenu.ts';
 
 const holding = (...granted: string[]) => (permission: string) => granted.includes(permission);
 
 describe('canViewOperations', () => {
-  it('shows the menu to roles that only work on orders, returns, pricing, the storefront or the catalog', () => {
-    for (const permission of ['order:view', 'return:view', 'pricing:read', 'storefront:read', 'catalog:manage']) {
+  it('shows the menu to roles that only work on orders, returns, pricing or the catalog', () => {
+    for (const permission of ['order:view', 'return:view', 'pricing:read', 'catalog:manage']) {
       assert.equal(canViewOperations(holding(permission)), true, permission);
     }
   });
@@ -37,10 +37,16 @@ describe('canViewOperations', () => {
 });
 
 describe('visibleOperations', () => {
-  it('gives the Super Admin all 19 items in 6 groups, in menu order', () => {
+  it('gives the Super Admin all 15 items in 6 groups, in menu order', () => {
     const groups = visibleOperations(() => true);
     assert.deepEqual(groups.map((g) => g.group), ['Orders', 'Catalog & pricing', 'Inventory & supply', 'Finance & customers', 'Insights & quality', 'Administration']);
-    assert.equal(groups.reduce((n, g) => n + g.items.length, 0), 19);
+    assert.equal(groups.reduce((n, g) => n + g.items.length, 0), 15);
+  });
+
+  it('no longer lists the screens run from the Super Admin portal', () => {
+    const paths = OPERATIONS_ITEMS.map((i) => i.path);
+    for (const moved of MOVED_TO_SUPER_ADMIN) assert.equal(paths.includes(moved.path), false, moved.path);
+    assert.equal(canViewOperations(holding('storefront:read', 'errors:manage', 'tenant:users.read', 'tenant:settings.manage')), false);
   });
 
   it('leaves out groups with nothing to open', () => {

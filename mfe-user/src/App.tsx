@@ -1,11 +1,10 @@
 import { Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import { ApplicationGate, store } from '@ecommerce/shared-library';
+import { store } from '@ecommerce/shared-library';
 import ProfilePage from './pages/ProfilePage';
 import AdminUserList from './pages/AdminUserList';
 import AddressBookPage from './pages/AddressBookPage';
-import TeamPage from './pages/TeamPage';
-import CurrencySettingsPage from './pages/CurrencySettingsPage';
+import { MovedToSuperAdmin } from '@ecommerce/shared-library/src/ui/MovedToSuperAdmin';
 import SecurityPage from './pages/SecurityPage';
 
 function App() {
@@ -17,9 +16,9 @@ function App() {
         <Route path="/admin" element={<AdminUserList />} />
         <Route path="/security" element={<SecurityPage />} />
         {/* Client team administration runs on the client's E-commerce Admin session (tenant token). */}
-        <Route path="/team" element={<ApplicationGate applicationCode="ECOMMERCE_ADMIN" applicationName="E-commerce Admin"><TeamPage /></ApplicationGate>} />
+        <Route path="/team" element={<MovedToSuperAdmin screen="Client Team" />} />
         {/* Business currency and display currencies; administrators change them (tenant:settings.manage). */}
-        <Route path="/currency" element={<ApplicationGate applicationCode="ECOMMERCE_ADMIN" applicationName="E-commerce Admin"><CurrencySettingsPage /></ApplicationGate>} />
+        <Route path="/currency" element={<MovedToSuperAdmin screen="Currency Settings" />} />
       </Routes>
     </Provider>
   );

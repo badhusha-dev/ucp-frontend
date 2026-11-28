@@ -69,9 +69,6 @@ export default function CartPage() {
   const [backendItems, setBackendItems] = useState<BackendCartItem[]>([]);
   const [validationItems, setValidationItems] = useState<ValidationItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [promoCode, setPromoCode] = useState<string>('');
-  const [discountPercent, setDiscountPercent] = useState<number>(0);
-  const [promoMessage, setPromoMessage] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   const getSessionToken = () => cartSessionToken(sessionStorage, localStorage);
@@ -194,28 +191,8 @@ export default function CartPage() {
     }
   };
 
-  const handleApplyPromo = () => {
-    const code = promoCode.trim().toUpperCase();
-    if (code === 'UNIVERSAL20') {
-      setDiscountPercent(20);
-      setPromoMessage('20% Universal Commerce discount applied!');
-      setErrorMsg('');
-    } else if (code === 'COMEBACK15' || code === 'SAVE15') {
-      setDiscountPercent(15);
-      setPromoMessage('15% Customer Recovery discount applied!');
-      setErrorMsg('');
-    } else {
-      setDiscountPercent(0);
-      setErrorMsg('Invalid discount code. Try "UNIVERSAL20" or "COMEBACK15".');
-      setPromoMessage('');
-    }
-  };
-
   const subtotal = backendItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
-  const discountAmount = Math.round(subtotal * (discountPercent / 100) * 100) / 100;
-  const shippingFee = subtotal > 100 || subtotal === 0 ? 0 : 9.99;
-  const tax = Math.round((subtotal - discountAmount) * 0.0825 * 100) / 100;
-  const grandTotal = Math.max(0, Math.round((subtotal - discountAmount + shippingFee + tax) * 100) / 100);
+  const grandTotal = Math.round(subtotal * 100) / 100;
 
   const totalItemCount = backendItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -482,54 +459,11 @@ export default function CartPage() {
                 Order Summary
               </Typography>
 
-              {/* Promo Code Input */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, mb: 1, display: 'block' }}>
-                  HAVE A PROMO CODE?
-                </Typography>
-                <Stack direction="row" spacing={1}>
-                  <TextField
-                    size="small"
-                    fullWidth
-                    placeholder="e.g. UNIVERSAL20"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value)}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        bgcolor: '#0B0F19',
-                        borderRadius: 2,
-                        color: '#F8FAFC',
-                        '& fieldset': { borderColor: '#334155' },
-                        '&:hover fieldset': { borderColor: '#4F46E5' },
-                      },
-                    }}
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={handleApplyPromo}
-                    sx={{
-                      bgcolor: '#312E81',
-                      color: '#E0E7FF',
-                      fontWeight: 700,
-                      borderRadius: 2,
-                      px: 2.5,
-                      '&:hover': { bgcolor: '#4338CA' },
-                    }}
-                  >
-                    Apply
-                  </Button>
-                </Stack>
-                {promoMessage && (
-                  <Alert severity="success" sx={{ mt: 1.5, py: 0.25, fontSize: '0.8rem', borderRadius: 2 }}>
-                    {promoMessage}
-                  </Alert>
-                )}
-                {errorMsg && (
-                  <Alert severity="error" sx={{ mt: 1.5, py: 0.25, fontSize: '0.8rem', borderRadius: 2 }}>
-                    {errorMsg}
-                  </Alert>
-                )}
-              </Box>
+              {errorMsg && (
+                <Alert severity="error" sx={{ mb: 2, py: 0.25, fontSize: '0.8rem', borderRadius: 2 }}>
+                  {errorMsg}
+                </Alert>
+              )}
 
               <Divider sx={{ borderColor: '#1E293B', mb: 2.5 }} />
 
@@ -542,30 +476,9 @@ export default function CartPage() {
                   </Typography>
                 </Box>
 
-                {discountAmount > 0 && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" sx={{ color: '#34D399', fontWeight: 600 }}>
-                      Discount ({discountPercent}%)
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#34D399' }}>
-                      -{formatMoney(discountAmount)}
-                    </Typography>
-                  </Box>
-                )}
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" sx={{ color: '#94A3B8' }}>Estimated Shipping</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: shippingFee === 0 ? '#34D399' : '#F8FAFC' }}>
-                    {shippingFee === 0 ? 'FREE' : `${formatMoney(shippingFee)}`}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" sx={{ color: '#94A3B8' }}>Estimated Tax (8.25%)</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#F8FAFC' }}>
-                    {formatMoney(tax)}
-                  </Typography>
-                </Box>
+                <Typography variant="caption" sx={{ color: '#94A3B8', lineHeight: 1.5 }}>
+                  Coupons, delivery and tax are worked out at checkout from the store&rsquo;s own rules.
+                </Typography>
               </Stack>
 
               <Divider sx={{ borderColor: '#1E293B', mb: 3 }} />
@@ -573,7 +486,7 @@ export default function CartPage() {
               {/* Grand Total */}
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Typography variant="h6" sx={{ fontWeight: 800, color: '#F8FAFC' }}>
-                  Total
+                  Items total
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 900, color: '#06B6D4' }}>
                   {formatMoney(grandTotal)}

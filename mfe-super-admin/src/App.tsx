@@ -15,6 +15,7 @@ import SystemHealthView from './views/SystemHealthView';
 import UsersView from './views/UsersView';
 import NotificationsView from './views/NotificationsView';
 import AuditLogView from './views/AuditLogView';
+import ClientWorkspaceView from './views/ClientWorkspaceView';
 
 type Tenant = { id: string; slug: string; displayName: string; status: string; currency?: string; displayRates?: Record<string, number> };
 type Application = { applicationCode: string; displayName: string; status: string; enabled: boolean };
@@ -244,6 +245,7 @@ export default function App() {
         {section === 'users' && <UsersView token={token} canManage={holds(permissions, 'platform:users.manage')}
           onOpenAudit={holds(permissions, 'platform:audit.read') ? (userId) => { setAuditUserId(String(userId)); setSection('audit'); } : undefined} />}
         {section === 'notifications' && <NotificationsView token={token} canLookUpUsers={holds(permissions, 'platform:users.read')} />}
+        {section === 'workspace' && <ClientWorkspaceView token={token} />}
         {section === 'audit' && <AuditLogView token={token} initialFilters={auditUserId ? { userId: auditUserId } : undefined} />}
       </Container>}
       <Dialog open={ratesOpen} onClose={() => setRatesOpen(false)} fullWidth maxWidth="sm">

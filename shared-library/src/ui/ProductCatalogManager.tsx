@@ -8,12 +8,14 @@ import {
   Tooltip, Typography,
 } from '@mui/material';
 import {
-  AddRounded, ArchiveOutlined, CategoryOutlined, DownloadRounded, EditOutlined, ImageOutlined, RefreshRounded, RestoreRounded, SearchRounded, UploadFileRounded,
+  AddRounded, ArchiveOutlined, CategoryOutlined, StorefrontOutlined, DownloadRounded, EditOutlined, ImageOutlined, RefreshRounded, RestoreRounded, SearchRounded, UploadFileRounded,
 } from '@mui/icons-material';
 import { formatAmount } from './format';
 import { EmptyState, ErrorState, LoadingState } from './StateViews';
 import { ProductEditorDialog } from './ProductEditorDialog';
 import { CategoryManagerDialog } from './CategoryManagerDialog';
+import { BusinessSetupDialog } from './BusinessSetupDialog';
+import { FOOD_MARK_COLORS, foodMark, type BusinessType, type CatalogSettings } from './businessTypes';
 import {
   BULK_ACTIONS, bulkChange, bulkProblem, bulkSummary, importFileProblem, importHeadline, importRowsForReview, stockTone,
   type AdminProduct, type BulkAction, type CatalogAdminApi, type CatalogCategory, type DownloadedFile, type FileFormat, type ImportReport,
@@ -193,6 +195,21 @@ export function ProductCatalogManager({ api, canManage, canManageStock, currency
   const loadCategories = useCallback(() => { api.categories().then(setCategories).catch(() => setCategories([])); }, [api]);
   useEffect(() => { loadCategories(); }, [loadCategories]);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  // Business types: the client's setup decides each product's extra fields.
+  const [settings, setSettings] = useState<CatalogSettings | null>(null);
+  const [allTypes, setAllTypes] = useState<BusinessType[]>([]);
+  const [setupOpen, setSetupOpen] = useState(false);
+  const loadSettings = useCallback(() => {
+    if (!api.catalogSettings) return;
+    api.catalogSettings().then(setSettings).catch(() => setSettings(null));
+  }, [api]);
+  useEffect(() => { loadSettings(); }, [loadSettings]);
+  const openSetup = () => {
+    setSetupOpen(true);
+    if (api.businessTypes && allTypes.length === 0) api.businessTypes().then(setAllTypes).catch(() => setAllTypes([]));
+  };
+  const typeName = (code?: string | null) => settings?.types.find((t) => t.code === (code || settings.mainType))?.name ?? '';
+  const mixedTypes = (settings?.types.length ?? 0) > 1;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -281,6 +298,11 @@ export function ProductCatalogManager({ api, canManage, canManageStock, currency
           {subtitle && <Typography color="text.secondary">{subtitle}</Typography>}
         </Box>
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          {api.saveCatalogSettings && api.businessTypes && (
+            <Tooltip describeChild title={settings ? `${typeName(settings.mainType)}${settings.extraTypes.length ? ` + ${settings.extraTypes.length} more` : ''}` : ''}>
+              <Button variant="outlined" startIcon={<StorefrontOutlined />} onClick={openSetup}>Business setup</Button>
+            </Tooltip>
+          )}
           {api.createCategory && <Button variant="outlined" startIcon={<CategoryOutlined />} onClick={() => setCategoriesOpen(true)}>Categories</Button>}
           {api.exportCatalog && <Button variant="outlined" startIcon={<DownloadRounded />} onClick={(e) => setExportMenu(e.currentTarget)}>Export</Button>}
           {canManage && api.importCatalog && <Button variant="outlined" startIcon={<UploadFileRounded />} onClick={() => setImportOpen(true)}>Import</Button>}
@@ -383,8 +405,18 @@ export function ProductCatalogManager({ api, canManage, canManageStock, currency
                             : <ImageOutlined sx={{ color: '#94A3B8' }} />}
                         </Box>
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography fontWeight={750} noWrap title={product.name}>{product.name}</Typography>
-                          <Typography variant="caption" color="text.secondary">{product.sku || `#${product.id}`}</Typography>
+                          <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0 }}>
+                            {foodMark(product.attributes) && (
+                              <Box aria-label={String(product.attributes?.food_type)} title={String(product.attributes?.food_type)} sx={{ width: 13, height: 13, flexShrink: 0,
+                                border: '2px solid', borderColor: FOOD_MARK_COLORS[foodMark(product.attributes)!], borderRadius: 0.4, display: 'grid', placeItems: 'center' }}>
+                                <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: FOOD_MARK_COLORS[foodMark(product.attributes)!] }} />
+                              </Box>
+                            )}
+                            <Typography fontWeight={750} noWrap title={product.name}>{product.name}</Typography>
+                          </Stack>
+                          <Typography variant="caption" color="text.secondary">
+                            {product.sku || `#${product.id}`}{mixedTypes && typeName(product.productType) ? ` · ${typeName(product.productType)}` : ''}{product.saleUnit && product.saleUnit !== 'piece' ? ` · per ${product.saleUnit}` : ''}
+                          </Typography>
                         </Box>
                       </Stack>
                     </TableCell>
@@ -423,7 +455,12 @@ export function ProductCatalogManager({ api, canManage, canManageStock, currency
       {counts.shown > 0 && !canManage && <Alert severity="info" sx={{ mt: 2 }}>Your role can view products but not change them.</Alert>}
 
       <ProductEditorDialog open={editorOpen} product={editing} api={api} categories={categories} canManageStock={canManageStock}
-        onHand={editing ? stock[editing.id] : undefined} currency={currency} onClose={() => setEditorOpen(false)} onSaved={saved} />
+        onHand={editing ? stock[editing.id] : undefined} currency={currency} settings={settings} onClose={() => setEditorOpen(false)} onSaved={saved} />
+
+      {api.saveCatalogSettings && (
+        <BusinessSetupDialog open={setupOpen} canManage={canManage} settings={settings} allTypes={allTypes} onSave={(body) => api.saveCatalogSettings!(body)}
+          onClose={(updated) => { setSetupOpen(false); if (updated) { setSettings(updated); setNotice({ text: 'Business setup saved. New products use the main type.', severity: 'success' }); void load(); } }} />
+      )}
 
       {api.createCategory && (
         <CategoryManagerDialog api={api} open={categoriesOpen} canManage={canManage}
