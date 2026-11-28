@@ -1,6 +1,6 @@
 // Pure helpers for the Super Admin console screens (no React, so the Node test runner can load them directly).
 
-export type SectionKey = 'clients' | 'health' | 'users' | 'notifications' | 'audit';
+export type SectionKey = 'clients' | 'workspace' | 'health' | 'users' | 'notifications' | 'audit';
 
 export interface Section {
   key: SectionKey;
@@ -11,6 +11,7 @@ export interface Section {
 
 export const SECTIONS: Section[] = [
   { key: 'clients', label: 'Client access', permission: 'platform:tenants.read' },
+  { key: 'workspace', label: 'Client workspace', permission: 'platform:tenants.manage' },
   { key: 'health', label: 'System health', permission: 'platform:system.read' },
   { key: 'users', label: 'Users', permission: 'platform:users.read' },
   { key: 'notifications', label: 'Notifications & DLQ', permission: 'errors:manage' },
@@ -24,6 +25,37 @@ export function holds(permissions: readonly string[] | undefined, permission: st
 /** Sections the signed-in staff member may open, in display order. */
 export function sectionsFor(permissions: readonly string[] | undefined): Section[] {
   return SECTIONS.filter((section) => holds(permissions, section.permission));
+}
+
+// ---- Client workspace ----------------------------------------------------------------------------------------------
+// Screens platform staff run for one client (they left the client's own E-commerce Admin). The portal acts for the
+// client with an E-commerce Admin token from /api/users/login/application/exchange; the gateway accepts changes to
+// these areas only from a Super Admin acting for the client.
+
+export type WorkspaceTab = 'storefront' | 'business' | 'currency' | 'team' | 'modules' | 'errors';
+
+export const WORKSPACE_TABS: { key: WorkspaceTab; label: string }[] = [
+  { key: 'storefront', label: 'Storefront management' },
+  { key: 'business', label: 'Business setup' },
+  { key: 'currency', label: 'Currency settings' },
+  { key: 'team', label: 'Client team' },
+  { key: 'modules', label: 'Module access' },
+  { key: 'errors', label: 'Error stack' },
+];
+
+/** Who the embedded screens should treat as acting: the role and permissions in the client token. */
+export function actingAsFromClaims(claims: Record<string, unknown> | null | undefined): { role: string; permissions: string[] } {
+  const role = typeof claims?.tenant_role === 'string' ? claims.tenant_role : '';
+  const raw = claims?.permissions;
+  const permissions = Array.isArray(raw) ? raw.filter((value): value is string => typeof value === 'string') : [];
+  return { role, permissions };
+}
+
+/** Plain-language reason a client workspace could not be opened. */
+export function workspaceOpenError(status: number, message: string, clientName: string): string {
+  if (status === 403) return `E-commerce Admin is not enabled for ${clientName}, or your account may not act for clients. Enable it under Client access first.`;
+  if (status === 404) return `${clientName} could not be found. Refresh the client list.`;
+  return message || `The workspace for ${clientName} could not be opened.`;
 }
 
 // ---- Status presentation -------------------------------------------------------------------------------------------

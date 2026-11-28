@@ -1,7 +1,8 @@
 import { ApplicationGate, CurrencySwitcher } from '@ecommerce/shared-library';
+import { MovedToSuperAdmin } from '@ecommerce/shared-library/src/ui/MovedToSuperAdmin';
 import ApplicationsPage from './pages/ApplicationsPage';
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/PasswordResetPages';
-import React, { lazy, Suspense, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -56,7 +57,7 @@ import {
   PointOfSaleRounded,
 } from '@mui/icons-material';
 import { Provider, useDispatch, useSelector } from 'react-redux';
-import { store, logout, ProtectedRoute, ANY_SIGNED_IN, initGlobalErrorHandlers } from '@ecommerce/shared-library';
+import { store, logout, ProtectedRoute, ANY_SIGNED_IN, initGlobalErrorHandlers, readApplicationSession } from '@ecommerce/shared-library';
 import type { RootState } from '@ecommerce/shared-library';
 import { marketplaceTheme } from './theme';
 import HomePage from './pages/HomePage';
@@ -104,7 +105,6 @@ const WORKSPACE_LINKS: Array<MenuLink & { permissions: string[] }> = [
   { to: '/inventory', label: 'Inventory hub', permissions: ['inventory:read', 'inventory:view'], icon: <Inventory2Outlined fontSize="small" sx={{ color: '#6366F1' }} /> },
   { to: '/stock', label: 'Stock & reservations', permissions: ['stock:read'], icon: <Inventory2Outlined fontSize="small" sx={{ color: '#0F9F8F' }} /> },
   { to: '/analytics', label: 'Analytics & KPIs', permissions: ['analytics:read'], icon: <InsightsRounded fontSize="small" sx={{ color: '#06B6D4' }} /> },
-  { to: '/error-stack', label: 'Error Stack', permissions: ['errors:manage'], icon: <BugReportRounded fontSize="small" sx={{ color: '#EF4444' }} /> },
   { to: '/crm', label: 'Advanced CRM', permissions: ['crm:read'], icon: <PeopleAltRounded fontSize="small" sx={{ color: '#45D6C1' }} /> },
   { to: '/accounting/admin', label: 'Accounting governance', permissions: ['accounting:approve'], icon: <AccountBalanceRounded fontSize="small" sx={{ color: '#F59E0B' }} /> },
   { to: '/profile/admin', label: 'User management', permissions: ['roles:manage'], icon: <AdminPanelSettingsOutlined fontSize="small" sx={{ color: '#7C3AED' }} /> },
@@ -121,7 +121,6 @@ const LoyaltyApp = lazy(() => import('loyalty_mfe/App').catch(() => ({ default: 
 const AccountingApp = lazy(() => import('accounting_mfe/App').catch(() => ({ default: () => <Box sx={{ p: 4, textAlign: 'center', color: '#EF4444' }}>Failed to load Accounting MFE</Box> })));
 const CrmApp = lazy(() => import('crm_mfe/App').catch(() => ({ default: () => <Box sx={{ p: 4, textAlign: 'center', color: '#EF4444' }}>Failed to load Advanced CRM</Box> })));
 const AnalyticsApp = lazy(() => import('analytics_mfe/App').catch(() => ({ default: () => <Box sx={{ p: 4, textAlign: 'center', color: '#EF4444' }}>Failed to load Analytics MFE</Box> })));
-const ErrorStackApp = lazy(() => import('error_stack_mfe/App').catch(() => ({ default: () => <Box sx={{ p: 4, textAlign: 'center', color: '#EF4444' }}>Failed to load Error Stack MFE</Box> })));
 const PosApp = lazy(() => import('pos_mfe/App').catch(() => ({ default: () => <Box sx={{ p: 4, textAlign: 'center', color: '#EF4444' }}>Failed to load Point of Sale</Box> })));
 const ProcurementApp = lazy(() => import('procurement_mfe/App').catch(() => ({ default: () => <Box sx={{ p: 4, textAlign: 'center', color: '#EF4444' }}>Failed to load Procurement MFE</Box> })));
 
@@ -144,11 +143,26 @@ function Navigation() {
     if (user?.role === 'MANAGER') return ['users:read','users:manage','roles:manage','accounting:read','accounting:write','accounting:approve','accounting:reconcile','accounting:import','accounting:export','crm:read','crm:manage','inventory:read','inventory:manage','stock:read','stock:manage','analytics:read','loyalty:manage','orders:manage','procurement:read','procurement:manage','errors:manage'].includes(permission);
     return false;
   };
+  // Module access: fetch the tenant's allowed modules from the backend once per session.
+  const [allowedModules, setAllowedModules] = useState<string[] | null>(null);
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const session = readApplicationSession('ECOMMERCE_ADMIN', sessionStorage);
+    if (!session?.token) return;                               // not yet exchanged for the application
+    fetch('/api/tenant/modules', { headers: { Authorization: 'Bearer ' + session.token } })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setAllowedModules(data.allowedModules ?? null); })
+      .catch(() => {});                                        // fail open: null = all allowed
+  }, [isAuthenticated]);
+
   // Shown whenever at least one Operations item is: order, returns, pricing, storefront and catalog roles included.
-  const canViewOperations = canViewOperationsMenu(hasPermission);
-  const operationsGroups = visibleOperations(hasPermission);
+  const canViewOperations = canViewOperationsMenu(hasPermission, allowedModules);
+  const operationsGroups = visibleOperations(hasPermission, allowedModules);
   // Account-menu shortcuts to the workspace screens this person may open (the Operations menu lists them all).
-  const workspaceLinks = WORKSPACE_LINKS.filter((link) => link.permissions.some(hasPermission));
+  const workspaceLinks = WORKSPACE_LINKS.filter((link) =>
+    link.permissions.some(hasPermission)
+    && (allowedModules == null || allowedModules.includes(link.to))
+  );
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -684,7 +698,7 @@ function App() {
                   <Route path="/crm/*" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN', 'SUPER_ADMIN']} requiredPermission="crm:read"><CrmApp /></ProtectedRoute>} />
                   <Route path="/procurement/*" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN', 'SUPER_ADMIN']} requiredPermission="procurement:manage"><ProcurementApp /></ProtectedRoute>} />
                   <Route path="/analytics/*" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN', 'SUPER_ADMIN']} requiredPermission="analytics:read"><AnalyticsApp /></ProtectedRoute>} />
-                  <Route path="/error-stack/*" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN', 'SUPER_ADMIN']} requiredPermission="errors:manage"><ErrorStackApp /></ProtectedRoute>} />
+                  <Route path="/error-stack/*" element={<MovedToSuperAdmin screen="Error Stack" />} />
 
                   {/* Own-account screens (checkout, orders, profile, loyalty, ledger): every signed-in role; services return only the caller's records and admin screens inside are gated again. */}
                   <Route
